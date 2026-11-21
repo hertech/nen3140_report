@@ -169,6 +169,7 @@ canvas.sig{width:100%;height:130px;background:#fff;border:1px solid var(--line);
 <div id="chips" class="chipwrap"></div>
 <main id="main"></main>
 
+<script src="version.js"></script>
 <script>
 "use strict";
 /* ---------- helpers ---------- */
@@ -667,6 +668,7 @@ function viewStart(){
   <details class="card"><summary>Op het beginscherm van je telefoon zetten</summary>
    ${ui.installEvt?'<button class="btn" data-act="install" style="margin-bottom:8px">Installeer als app</button>':''}<p class="hint">iPhone: open deze pagina in Safari, tik op de deelknop en kies “Zet op beginscherm”. Android: menu van de browser, “Toevoegen aan startscherm”.</p>
    <p class="hint" style="margin-top:8px">Na de eerste keer laden werkt de app ook zonder bereik. Je gegevens staan in de opslag van deze browser op dit toestel (IndexedDB). Wis je browsergegevens, dan zijn ze weg: bewaar dus regelmatig een bestand via Klantrapport.</p></details>
+  <section class="card"><h2>Versie</h2><p class="hint" style="margin-bottom:8px">Meethulp ${APP_VERSION}${ui.waiting?' · update beschikbaar':''}</p><button class="btn ghost sm" data-act="chkupd">Zoek naar update</button></section>
   <section class="card"><h2>Nieuwe inspectie</h2><p class="hint" style="margin-bottom:8px">Bewaar eerst je werk via Klantrapport → Opslaan als bestand. Dit wist het object, de metingen, de visuele punten, de gebreken en de foto’s. Je vaste gegevens (inspecteur, bedrijf, instrument, norm) en je aangepaste grenswaarden blijven staan.</p>${wipeBlock()}</section>`;
 }
 function viewGegevens(){
@@ -887,11 +889,11 @@ function klantInner(){
   ${S.afw.aan?`<h2>Aanbevelingen</h2><p>${nl2br(S.afw.aan)}</p>`:''}
   <h2>Bijlage A: meetwaarden</h2><p>Per meting staat in gewone woorden wat er gemeten wordt. De cijfers zijn de gemeten waarden met de bijbehorende grens.</p>${bij}${ar.length?`<h3>Aarding</h3>${ktTable(ar)}`:''}
   <h2>Bijlage B: foto’s</h2>${foto||'<p>Geen foto’s.</p>'}
-  <h2>Over deze inspectie</h2><div class="kv">${kv('Toegepaste norm',F.norm)}${kv('Meetinstrument',F.instr)}${kv('Serienummer',F.serie)}${kv('Kalibratiedatum',F.kal)}${kv('Omvang',I.omvang)}${kv('Documentatie',I.docs)}</div>
+  <h2>Over deze inspectie</h2><div class="kv">${kv('Toegepaste norm',F.norm)}${kv('Meetinstrument',F.instr)}${kv('Serienummer',F.serie)}${kv('Kalibratiedatum',F.kal)}${kv('Omvang',I.omvang)}${kv('Documentatie',I.docs)}${kv('Meethulp-versie',APP_VERSION)}</div>
   <h2>Ondertekening</h2><div class="sig"><p>${esc(I.teken||F.insp||'')} ${I.tekenDatum?'· '+esc(I.tekenDatum):''}</p>${S.sig?`<img src="${S.sig}" alt="Handtekening">`:''}</div>`;
 }
 function dataJSON(){
-  return JSON.stringify({app:'meethulp',v:2,S:S,photos:S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))}).replace(/</g,'\\u003c');
+  return JSON.stringify({app:'meethulp',v:2,ver:APP_VERSION,S:S,photos:S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))}).replace(/</g,'\\u003c');
 }
 function klantHTML(){
   return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspectierapport ${esc(S.info.object||'')}</title><style>body{margin:0;background:#fff}.kr{max-width:820px;margin:0 auto}${KCSS}</style></head><body><div class="kr">${klantInner()}</div><script type="application/json" id="meethulp-data">${dataJSON()}<\/script></body></html>`;
@@ -934,7 +936,7 @@ function reportText(){
   const I=S.info,F=S.fixed,L=[];
   const hd=(t)=>{L.push('');L.push(t.toUpperCase())};
   const kv=(k,v)=>{if(v)L.push(k+': '+v)};
-  L.push('INSPECTIERAPPORT');
+  L.push('INSPECTIERAPPORT');L.push('Meethulp-versie: '+APP_VERSION);
   L.push('EINDOORDEEL: '+(({goed:'Goedgekeurd',niet:'Niet goedgekeurd'})[S.oordeel]||'nog niet vastgesteld'));
   if(S.afw.con)L.push('Conclusie: '+S.afw.con);
   L.push('Gebreken: '+S.gebr.length);
@@ -995,7 +997,7 @@ function render(){
   const y=window.scrollY;
   $('#chips').innerHTML=chipsHTML();fixChips();
   const v={start:viewStart,gegevens:viewGegevens,meten:viewMeten,visueel:viewVisueel,foto:viewFoto,gebreken:viewGebreken,rapport:viewRapport,klant:viewKlant}[S.cur.tab]||viewStart;
-  $('#main').innerHTML=(ui.msg?`<div class="warn">${esc(ui.msg)}</div>`:'')+v();
+  $('#main').innerHTML=(ui.waiting?`<div class="warn"><b>Nieuwe versie beschikbaar.</b> Je gegevens blijven bewaard.<div style="margin-top:8px"><button class="btn sm" data-act="doupd">Nu bijwerken</button></div></div>`:'')+(ui.msg?`<div class="warn">${esc(ui.msg)}</div>`:'')+v();
   ui.msg='';
   $('#nav').innerHTML=navHTML();
   updateCalc();
@@ -1177,6 +1179,13 @@ document.addEventListener('click',async e=>{
     const x=S.gebr[i];if(x){if(x.src)S.gdis.push(x.src);S.photos.filter(p=>p.ref==='g:'+x.id).forEach(p=>dropPhotoStore(p.id));S.photos=S.photos.filter(p=>p.ref!=='g:'+x.id);S.gebr.splice(i,1)}
     ui.confirm='';touch();render()}
   else if(a==='addlim'){const z=`Let op: ${counts().nu} metingen zijn niet uitgevoerd; de installatie is op die punten niet beoordeeld.`;if(!(S.afw.con||'').includes('niet uitgevoerd'))S.afw.con=((S.afw.con||'')+(S.afw.con?'\n':'')+z);touch();render()}
+  else if(a==='doupd'){if(ui.waiting){try{await persist()}catch(x){}ui.updating=true;ui.waiting.postMessage('SKIP_WAITING')}}
+  else if(a==='chkupd'){
+    if(!swReg){ui.msg='Updates controleren werkt alleen in de geïnstalleerde app of via https.';render();return}
+    if(!navigator.onLine){ui.msg='Geen verbinding. Probeer het opnieuw met internet.';render();return}
+    try{await swReg.update()}catch(x){}
+    await new Promise(r=>setTimeout(r,1500));
+    ui.msg=ui.waiting?'':'Je hebt de nieuwste versie ('+APP_VERSION+').';render()}
   else if(a==='pdf'){printReport()}
   else if(a==='install'){const ev=ui.installEvt;if(ev){ev.prompt();try{await ev.userChoice}catch(x){}ui.installEvt=null;render()}}
   else if(a==='savefile'){saveFile(fileName(),klantHTML(),$('#fmsg'))}
@@ -1198,7 +1207,20 @@ document.addEventListener('focusin',()=>{
 });
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();ui.installEvt=e;if(S.cur.tab==='start')render()});
 window.addEventListener('appinstalled',()=>{ui.installEvt=null;if(S.cur.tab==='start')render()});
-if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+let swReg=null;
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+      swReg=reg;
+      const watch=w=>w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller){ui.waiting=w;render()}});
+      if(reg.waiting&&navigator.serviceWorker.controller){ui.waiting=reg.waiting;render()}
+      reg.addEventListener('updatefound',()=>{if(reg.installing)watch(reg.installing)});
+      reg.update().catch(()=>{});
+      setInterval(()=>reg.update().catch(()=>{}),3600000);
+    }).catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(ui.updating)location.reload()});
+  });
+}
 load().then(()=>{
   if(window.claude&&window.claude.use)window.claude.use('downloads').then(d=>{if(d)showDl()}).catch(()=>{});
 });
