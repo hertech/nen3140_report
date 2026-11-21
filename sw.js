@@ -1,7 +1,7 @@
 /* Service worker Meethulp: app-shell offline. Versie komt uit version.js. */
 importScripts('version.js');
 const CACHE = 'meethulp-' + APP_VERSION;
-const CORE = ['./', 'index.html', 'version.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
+const CORE = ['./', 'index.html', 'version.js', 'CHANGELOG.md', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
 // Geen automatische skipWaiting: de gebruiker kiest zelf wanneer de nieuwe versie actief wordt.
 self.addEventListener('install', e => {

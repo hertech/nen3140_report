@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Meethulp">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b5d6b">
+<script>try{var _t=localStorage.getItem('meethulp-theme');if(_t==='light'||_t==='dark')document.documentElement.setAttribute('data-theme',_t)}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -123,6 +124,13 @@ pre.rep{margin:0;font:12px/1.5 var(--f-mono);white-space:pre-wrap;word-break:bre
 .seg input:checked+span.ty .ico{color:var(--acc-ink)}
 .ty b{font:500 13px var(--f-mono)}
 .sbox{display:inline-block;border:1.5px solid var(--ink);padding:0 5px;font-weight:600;border-radius:2px;margin-left:4px}
+.md h2{font-size:18px;margin:0 0 8px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.md h3{font-size:16px;margin:18px 0 4px;text-transform:none;letter-spacing:0;color:var(--acc);border-top:1px solid var(--line);padding-top:12px}
+.md h4{font-size:13px;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut)}
+.md p{margin:6px 0}.md ul{margin:4px 0 8px;padding-left:20px}.md li{margin:3px 0}
+.md code{font-family:var(--f-mono);font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.md a{color:var(--acc)}
+:root[data-theme="light"]{color-scheme:light}
 #printroot{display:none}
 @media print{body>*:not(#printroot){display:none!important}#printroot{display:block!important}html,body{background:#fff!important;margin:0!important;padding:0!important}#printroot .kr{max-width:none}}
 @media (prefers-reduced-motion:no-preference){.info{animation:in .15s ease-out}@keyframes in{from{opacity:.3;transform:translateY(-4px)}}}
@@ -163,7 +171,7 @@ canvas.sig{width:100%;height:130px;background:#fff;border:1px solid var(--line);
 </head>
 <body>
 <header>
-  <div class="top"><h1>Meethulp NEN 3140</h1><span class="save" id="save">laden…</span></div>
+  <div class="top"><h1>Meethulp NEN 3140</h1><span style="display:flex;gap:10px;align-items:center"><span class="save" id="save">laden…</span><button class="chip" id="themebtn" data-act="theme" aria-label="Thema wisselen" style="min-height:34px;padding:5px 10px;font-size:13px">◐ Auto</button></span></div>
   <nav id="nav" class="menu" aria-label="Onderdelen"></nav>
 </header>
 <div id="chips" class="chipwrap"></div>
@@ -668,7 +676,8 @@ function viewStart(){
   <details class="card"><summary>Op het beginscherm van je telefoon zetten</summary>
    ${ui.installEvt?'<button class="btn" data-act="install" style="margin-bottom:8px">Installeer als app</button>':''}<p class="hint">iPhone: open deze pagina in Safari, tik op de deelknop en kies “Zet op beginscherm”. Android: menu van de browser, “Toevoegen aan startscherm”.</p>
    <p class="hint" style="margin-top:8px">Na de eerste keer laden werkt de app ook zonder bereik. Je gegevens staan in de opslag van deze browser op dit toestel (IndexedDB). Wis je browsergegevens, dan zijn ze weg: bewaar dus regelmatig een bestand via Klantrapport.</p></details>
-  <section class="card"><h2>Versie</h2><p class="hint" style="margin-bottom:8px">Meethulp ${APP_VERSION}${ui.waiting?' · update beschikbaar':''}</p><button class="btn ghost sm" data-act="chkupd">Zoek naar update</button></section>
+  <section class="card"><h2>Weergave</h2><div class="chips" style="padding:0">${[['auto','Automatisch'],['light','Licht'],['dark','Donker']].map(([v,t])=>`<button class="chip" data-act="settheme" data-v="${v}" aria-pressed="${getTheme()===v}">${t}</button>`).join('')}</div></section>
+  <section class="card"><h2>Versie</h2><p class="hint" style="margin-bottom:8px">Meethulp ${APP_VERSION}${ui.waiting?' · update beschikbaar':''}</p><div class="row"><button class="btn sm" data-act="tab" data-k="changelog">Wat is nieuw</button><button class="btn ghost sm" data-act="chkupd">Zoek naar update</button></div></section>
   <section class="card"><h2>Nieuwe inspectie</h2><p class="hint" style="margin-bottom:8px">Bewaar eerst je werk via Klantrapport → Opslaan als bestand. Dit wist het object, de metingen, de visuele punten, de gebreken en de foto’s. Je vaste gegevens (inspecteur, bedrijf, instrument, norm) en je aangepaste grenswaarden blijven staan.</p>${wipeBlock()}</section>`;
 }
 function viewGegevens(){
@@ -992,12 +1001,67 @@ function viewRapport(){
   <section class="card"><h2>Nieuwe inspectie</h2><p class="hint" style="margin-bottom:8px">Wist object, metingen, visuele punten, gebreken en foto’s. Vaste gegevens en grenswaarden blijven staan.</p>${wipeBlock()}</section>`;
 }
 
+/* ---------- thema ---------- */
+const THEMEKEY='meethulp-theme',SEENKEY='meethulp-seenver';
+const getTheme=()=>{try{return localStorage.getItem(THEMEKEY)||'auto'}catch(e){return 'auto'}};
+function applyTheme(){
+  const t=getTheme(),r=document.documentElement;
+  if(t==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
+  const dark=t==='dark'||(t==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=dark?'#12181a':'#0b5d6b';
+  const b=$('#themebtn');if(b)b.textContent=({auto:'◐ Auto',light:'☀ Licht',dark:'☾ Donker'})[t];
+}
+function setTheme(t){try{if(t==='auto')localStorage.removeItem(THEMEKEY);else localStorage.setItem(THEMEKEY,t)}catch(e){}applyTheme();render()}
+
+/* ---------- changelog (CHANGELOG.md, eenvoudige markdown) ---------- */
+function mdInline(t){
+  t=esc(t);
+  t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
+  t=t.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  t=t.replace(/(^|[^*])\*([^*\s][^*]*)\*/g,'$1<i>$2</i>');
+  t=t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return t;
+}
+function mdRender(src){
+  const out=[];let inUl=false,para=[];
+  const flushP=()=>{if(para.length){out.push('<p>'+mdInline(para.join(' '))+'</p>');para=[]}};
+  const closeUl=()=>{if(inUl){out.push('</ul>');inUl=false}};
+  String(src).replace(/\r/g,'').split('\n').forEach(line=>{
+    let m;
+    if(/^\s*$/.test(line)){flushP();closeUl();return}
+    if(/^\[[^\]]+\]:\s/.test(line))return;
+    if((m=line.match(/^(#{1,4})\s+(.*)$/))){flushP();closeUl();const n=Math.min(m[1].length+1,5);out.push(`<h${n}>${mdInline(m[2])}</h${n}>`);return}
+    if((m=line.match(/^\s*[-*]\s+(.*)$/))){flushP();if(!inUl){out.push('<ul>');inUl=true}out.push('<li>'+mdInline(m[1])+'</li>');return}
+    if(inUl&&/^\s{2,}\S/.test(line)){out[out.length-1]=out[out.length-1].replace(/<\/li>$/,' '+mdInline(line.trim())+'</li>');return}
+    closeUl();para.push(line.trim());
+  });
+  flushP();closeUl();
+  return out.join('');
+}
+function viewChangelog(){
+  if(!ui.cl){
+    ui.cl={s:'load'};
+    fetch('CHANGELOG.md').then(r=>{if(!r.ok)throw 0;return r.text()})
+      .then(t=>{ui.cl={s:'ok',t};if(S.cur.tab==='changelog')render()})
+      .catch(()=>{ui.cl={s:'err'};if(S.cur.tab==='changelog')render()});
+  }
+  const c=ui.cl;
+  let body;
+  if(c.s==='ok'){
+    const m=c.t.match(/^##\s*\[(\d+\.\d+\.\d+)\]/m);
+    const warn=(m&&m[1]!==APP_VERSION)?`<div class="warn" style="margin-bottom:10px">Let op: de changelog loopt tot versie ${esc(m[1])}, de app is ${esc(APP_VERSION)}. Een van de twee is niet bijgewerkt.</div>`:'';
+    body=warn+`<div class="md">${mdRender(c.t)}</div>`;
+  }else if(c.s==='err')body='<p class="hint">De changelog kon niet geladen worden. Dit lukt alleen als de app via https of vanaf de server is geopend.</p><button class="btn ghost sm" data-act="clretry">Opnieuw proberen</button>';
+  else body='<p class="hint">Laden…</p>';
+  return `<section class="card"><h2>Wat is nieuw<span class="sp"></span><span class="hint">Versie ${esc(APP_VERSION)}</span></h2>${body}</section>`;
+}
+
 /* ---------- render ---------- */
 function render(){
   const y=window.scrollY;
   $('#chips').innerHTML=chipsHTML();fixChips();
-  const v={start:viewStart,gegevens:viewGegevens,meten:viewMeten,visueel:viewVisueel,foto:viewFoto,gebreken:viewGebreken,rapport:viewRapport,klant:viewKlant}[S.cur.tab]||viewStart;
-  $('#main').innerHTML=(ui.waiting?`<div class="warn"><b>Nieuwe versie beschikbaar.</b> Je gegevens blijven bewaard.<div style="margin-top:8px"><button class="btn sm" data-act="doupd">Nu bijwerken</button></div></div>`:'')+(ui.msg?`<div class="warn">${esc(ui.msg)}</div>`:'')+v();
+  const v={start:viewStart,gegevens:viewGegevens,meten:viewMeten,visueel:viewVisueel,foto:viewFoto,gebreken:viewGebreken,rapport:viewRapport,klant:viewKlant,changelog:viewChangelog}[S.cur.tab]||viewStart;
+  $('#main').innerHTML=(ui.waiting?`<div class="warn"><b>Nieuwe versie beschikbaar.</b> Je gegevens blijven bewaard.<div style="margin-top:8px"><button class="btn sm" data-act="doupd">Nu bijwerken</button></div></div>`:'')+(ui.updated?`<div class="warn"><b>Bijgewerkt naar versie ${APP_VERSION}.</b> Eerder: ${esc(ui.updated)}.<div class="row" style="margin-top:8px"><button class="btn sm" data-act="tab" data-k="changelog">Bekijk wat is nieuw</button><button class="btn ghost sm" data-act="dismissupd">Sluiten</button></div></div>`:'')+(ui.msg?`<div class="warn">${esc(ui.msg)}</div>`:'')+v();
   ui.msg='';
   $('#nav').innerHTML=navHTML();
   updateCalc();
@@ -1142,7 +1206,7 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
   if(a!=='delsec'&&a!=='delgrp'&&a!=='wipe'&&a!=='gdel')ui.confirm='';
-  if(a==='tab'){S.cur.tab=b.dataset.k;if(b.dataset.k==='gebreken')fillGebr();touch();render();window.scrollTo(0,0)}
+  if(a==='tab'){S.cur.tab=b.dataset.k;if(b.dataset.k==='changelog')ui.updated=null;if(b.dataset.k==='gebreken')fillGebr();touch();render();window.scrollTo(0,0)}
   else if(a==='sec'){S.cur.s=+b.dataset.i;S.cur.g=0;ui.confirm='';touch();render()}
   else if(a==='grp'){S.cur.g=+b.dataset.i;ui.confirm='';touch();render()}
   else if(a==='addform'){ui.addOpen=!ui.addOpen;render()}
@@ -1179,6 +1243,10 @@ document.addEventListener('click',async e=>{
     const x=S.gebr[i];if(x){if(x.src)S.gdis.push(x.src);S.photos.filter(p=>p.ref==='g:'+x.id).forEach(p=>dropPhotoStore(p.id));S.photos=S.photos.filter(p=>p.ref!=='g:'+x.id);S.gebr.splice(i,1)}
     ui.confirm='';touch();render()}
   else if(a==='addlim'){const z=`Let op: ${counts().nu} metingen zijn niet uitgevoerd; de installatie is op die punten niet beoordeeld.`;if(!(S.afw.con||'').includes('niet uitgevoerd'))S.afw.con=((S.afw.con||'')+(S.afw.con?'\n':'')+z);touch();render()}
+  else if(a==='theme'){const n={auto:'light',light:'dark',dark:'auto'}[getTheme()];setTheme(n)}
+  else if(a==='settheme'){setTheme(b.dataset.v)}
+  else if(a==='dismissupd'){ui.updated=null;render()}
+  else if(a==='clretry'){ui.cl=null;render()}
   else if(a==='doupd'){if(ui.waiting){try{await persist()}catch(x){}ui.updating=true;ui.waiting.postMessage('SKIP_WAITING')}}
   else if(a==='chkupd'){
     if(!swReg){ui.msg='Updates controleren werkt alleen in de geïnstalleerde app of via https.';render();return}
@@ -1205,6 +1273,9 @@ let dlOk=true;function showDl(){dlOk=true;document.querySelectorAll('.dlb').forE
 document.addEventListener('focusin',()=>{
   if(S.cur.tab==='rapport'){const b=document.querySelector('.dlb');if(b&&b.hidden){window.claude&&window.claude.use&&window.claude.use('downloads').then(d=>{if(d)showDl()}).catch(()=>{})}}
 });
+applyTheme();
+if(window.matchMedia){try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(getTheme()==='auto')applyTheme()})}catch(e){}}
+try{const seen=localStorage.getItem(SEENKEY);if(seen&&seen!==APP_VERSION)ui.updated=seen;localStorage.setItem(SEENKEY,APP_VERSION)}catch(e){}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();ui.installEvt=e;if(S.cur.tab==='start')render()});
 window.addEventListener('appinstalled',()=>{ui.installEvt=null;if(S.cur.tab==='start')render()});
 let swReg=null;
