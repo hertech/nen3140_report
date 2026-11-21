@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Meethulp NEN 3140</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Meethulp">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0b5d6b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: instrument-panel list. Sticky header with deel/groep chips, step cards, fixed bottom tabs. */
+:root{
+  --bg:#efede5; --card:#fffdf8; --ink:#1c2326; --mut:#59646a; --line:#d6d2c5;
+  --acc:#0b5d6b; --acc-ink:#ffffff; --accbg:#dcecee;
+  --ok:#1b7a43; --okbg:#ddefe3; --bad:#b3261e; --badbg:#f8dedb; --warn:#7d5200; --warnbg:#f7ebc6;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12181a; --card:#1b2326; --ink:#e7ecec; --mut:#9aa7ab; --line:#2f3b3f;
+    --acc:#5bbccb; --acc-ink:#0b1a1d; --accbg:#1d3a40;
+    --ok:#62c38a; --okbg:#173525; --bad:#ff8b80; --badbg:#3d1d1a; --warn:#e8c26a; --warnbg:#3a2f12;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12181a; --card:#1b2326; --ink:#e7ecec; --mut:#9aa7ab; --line:#2f3b3f;
+  --acc:#5bbccb; --acc-ink:#0b1a1d; --accbg:#1d3a40;
+  --ok:#62c38a; --okbg:#173525; --bad:#ff8b80; --badbg:#3d1d1a; --warn:#e8c26a; --warnbg:#3a2f12;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--f-body);padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 8px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.01em}
+.save{font-size:12px;color:var(--mut);font-family:var(--f-mono)}
+.chips{position:relative;display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chiplbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-top:6px}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;display:flex;align-items:center;gap:7px;min-height:38px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.chip.add{border-style:dashed;color:var(--acc)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+.chip[aria-pressed="true"] .dot{box-shadow:0 0 0 2px var(--acc-ink)}
+main{padding:12px 16px;max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{font-size:16px;margin:0 0 10px;font-weight:600;display:flex;align-items:center;gap:10px}
+.card h2 .n{font-family:var(--f-mono);font-size:12px;background:var(--accbg);color:var(--acc);border-radius:4px;padding:2px 7px;font-weight:500}
+.card h2 .sp{flex:1}
+h3{font-size:13px;margin:14px 0 6px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut);min-width:0}
+.fld>span{font-weight:500}
+.inp{display:flex;align-items:center;gap:6px}
+input[type=text],select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 11px;min-height:44px}
+textarea{resize:vertical;line-height:1.4}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.inp em{font-style:normal;font-family:var(--f-mono);font-size:13px;color:var(--mut);min-width:28px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid .full{grid-column:1/-1}
+@media (max-width:380px){.grid{grid-template-columns:1fr}}
+.m{border-top:1px solid var(--line);padding:12px 0 4px}
+.m:first-of-type{border-top:0;padding-top:0}
+.mh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.mh b{font-weight:600}
+.i{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--acc);color:var(--acc);background:transparent;font:italic 600 15px var(--f-body);cursor:pointer;flex:none}
+.i[aria-expanded="true"]{background:var(--acc);color:var(--acc-ink)}
+.info{background:var(--accbg);border-radius:8px;padding:12px;margin:2px 0 10px;display:flex;flex-direction:column;gap:10px}
+.ih{font-weight:600;color:var(--acc)}
+.fm{font-family:var(--f-mono);font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-x:auto;white-space:pre-wrap}
+.lim{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lnk{align-self:flex-start;background:none;border:0;color:var(--acc);font:inherit;font-size:13px;text-decoration:underline;padding:6px 0;cursor:pointer}
+.res{margin-top:8px;font-size:13px;color:var(--mut);display:flex;flex-direction:column;gap:3px;min-height:22px}
+.rl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cx{font-family:var(--f-mono);font-size:12px}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px}
+.pill.ok{background:var(--okbg);color:var(--ok)} .pill.bad{background:var(--badbg);color:var(--bad)} .pill.w{background:var(--warnbg);color:var(--warn)} .stbar{margin:6px 0 8px} .stbar .seg span{padding:8px 10px;font-size:14px;min-height:38px} .fld.need>span{color:var(--bad);font-weight:600} .fld.need textarea{border-color:var(--bad)}
+.pill.n{background:var(--bg);color:var(--mut);border:1px solid var(--line)}
+.chk{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line);min-height:48px;cursor:pointer}
+.chk:first-of-type{border-top:0}
+.chk input{width:22px;height:22px;accent-color:var(--acc);flex:none}
+.chk span{flex:1}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{display:flex}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 14px;font-size:15px;min-height:42px;display:flex;align-items:center;cursor:pointer;color:var(--ink)}
+.seg input:checked+span{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.seg input:focus-visible+span{outline:2px solid var(--acc);outline-offset:1px}
+.seg.bad input:checked+span{background:var(--bad);border-color:var(--bad);color:#fff}
+.vis{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:8px}
+.vis:first-of-type{border-top:0;padding-top:0}
+.vis p{margin:0;font-size:15px}
+.vis .no{font-family:var(--f-mono);font-size:12px;color:var(--mut)}
+.btn{font:inherit;font-weight:500;border-radius:8px;border:1px solid var(--acc);background:var(--acc);color:var(--acc-ink);padding:11px 16px;min-height:44px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--acc)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn.dangerx{background:var(--bad);color:#fff;border-color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:0 0 auto}
+details.card>summary{cursor:pointer;font-weight:600;font-size:16px;min-height:28px;list-style-position:inside}
+details.card[open]>summary{margin-bottom:12px}
+.sum{display:flex;gap:8px;flex-wrap:wrap}
+.sum div{flex:1;min-width:90px;border-radius:8px;padding:10px;font-size:12px;color:var(--mut);background:var(--bg);border:1px solid var(--line)}
+.sum b{display:block;font:500 24px var(--f-mono);color:var(--ink)}
+pre.rep{margin:0;font:12px/1.5 var(--f-mono);white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;max-height:420px;overflow:auto}
+.hint{font-size:13px;color:var(--mut);margin:0}
+.warn{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13px}
+.tt{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border-radius:6px;overflow:hidden}
+.tt th,.tt td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle}
+.tt th{background:var(--bg);font-weight:600}
+.ico{display:block;color:var(--ink)}
+.seg span.ty{flex-direction:column;gap:2px;padding:6px 12px;min-height:58px;justify-content:center}
+.seg input:checked+span.ty .ico{color:var(--acc-ink)}
+.ty b{font:500 13px var(--f-mono)}
+.sbox{display:inline-block;border:1.5px solid var(--ink);padding:0 5px;font-weight:600;border-radius:2px;margin-left:4px}
+#printroot{display:none}
+@media print{body>*:not(#printroot){display:none!important}#printroot{display:block!important}html,body{background:#fff!important;margin:0!important;padding:0!important}#printroot .kr{max-width:none}}
+@media (prefers-reduced-motion:no-preference){.info{animation:in .15s ease-out}@keyframes in{from{opacity:.3;transform:translateY(-4px)}}}
+.menu{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;scrollbar-width:none}
+.menu::-webkit-scrollbar{display:none}
+.menu button{flex:none;font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.menu button[aria-current="page"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.chipwrap{max-width:720px;margin:0 auto;padding:0 16px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{font:inherit;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:104px;display:flex;flex-direction:column;gap:4px;color:var(--ink);cursor:pointer}
+.tile b{font:500 24px var(--f-mono);color:var(--acc)}
+.tile span{font-weight:600}
+.tile small{color:var(--mut);font-size:12px}
+.vd{display:inline-block;width:14px;height:14px;border-radius:50%;flex:none}
+.vd.on{background:#d32f2f}.vd.spl{background:#2e9e5b}.vd.unk{background:var(--line)}
+.mhr{display:flex;align-items:center;gap:10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--mut)}
+.pn{margin:0 0 6px}
+.ph{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+.th{position:relative;display:inline-block}
+.th img{display:block;width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.th .x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--bad);color:#fff;font-size:12px;cursor:pointer}
+.btn.sm{padding:7px 12px;min-height:36px;font-size:14px}
+.vh{position:absolute;opacity:0;width:1px;height:1px;overflow:hidden}
+label.btn{display:inline-flex;align-items:center;gap:6px;position:relative}
+.gal{display:flex;gap:12px;align-items:flex-start;border-top:1px solid var(--line);padding:12px 0}
+.gal:first-of-type{border-top:0;padding-top:0}
+.gal img{width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:none}
+.gal .fld{flex:1}
+canvas.sig{width:100%;height:130px;background:#fff;border:1px solid var(--line);border-radius:8px;touch-action:none;display:block}
+.svgst{color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px;width:100%;height:auto}
+.vsw{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.vsw button{font:inherit;font-weight:600;font-size:14px;border:0;background:var(--bg);color:var(--ink);padding:12px 8px;min-height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.vsw button.on-spl{background:#2e9e5b;color:#fff}
+.vsw button.on-on{background:#d32f2f;color:#fff}
+.vsw button.on-spl .vd,.vsw button.on-on .vd{box-shadow:0 0 0 2px #fff}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>Meethulp NEN 3140</h1><span class="save" id="save">laden…</span></div>
+  <nav id="nav" class="menu" aria-label="Onderdelen"></nav>
+</header>
+<div id="chips" class="chipwrap"></div>
+<main id="main"></main>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=v=>String(v==null?'':v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=v=>{if(v===''||v==null)return NaN;return parseFloat(String(v).replace(',','.'))};
+const fx=(x,d=2)=>(x==null||isNaN(x))?'–':Number(x).toLocaleString('nl-NL',{maximumFractionDigits:d});
+const getP=(p,o=S)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+const setP=(p,v)=>{const k=p.split('.');let o=S;for(let i=0;i<k.length-1;i++){if(o[k[i]]==null)o[k[i]]={};o=o[k[i]]}o[k[k.length-1]]=v};
+const pid=p=>'f-'+p.replace(/\W/g,'_');
+const cmp=(v,f)=>isNaN(v)?null:!!f(v);
+
+/* ---------- vaste lijsten ---------- */
+const VIS=[
+ 'Gekozen maatregelen tegen elektrische schok (basis, fout en aanvullende bescherming) in overeenstemming met de eisen',
+ 'Aanwezigheid van vereiste brandwerende afschermingen en andere voorzorgsmaatregelen tegen brandverspreiding en thermische invloeden',
+ 'Keuze van leidingen juist in verband met de hoogst toelaatbare stroom',
+ 'Juiste keuze en instelling van beveiligingstoestellen',
+ 'Juiste keuze, locatie, installatie en afstemming van de overspanningsafleiders',
+ 'Aanwezigheid van geschikte schakelaars en scheiders op de juiste plaatsen',
+ 'Keuze elektrisch materieel in overeenstemming met de uitwendige invloeden',
+ 'Juiste aanduiding van de nul en beschermingsleidingen',
+ 'Aanwezigheid van schema’s, tekeningen, waarschuwingsborden of andere aanduidingen (grondschema, installatieschema, stroomkringschema, groepenverklaring)',
+ 'Juiste aanduiding van stroomketens, beveiligingstoestellen tegen overstroom, kortsluitstroom, schakelaars, scheiders, aansluitklemmen, etc.',
+ 'Deugdelijkheid van de aansluitingen van de leidingen (voorschriften fabrikant), bijv. striplengte en aanhaalmoment',
+ 'Aanwezigheid en geschiktheid van beschermingsleidingen met inbegrip van vereffeningsleidingen en aanvullende vereffeningsleidingen',
+ 'Vereiste bereikbaarheid van materieel voor bediening, identificatie en onderhoud',
+ 'Maatregelen tegen aanwezige elektromagnetische verstoring',
+ 'Vereffening van aanraakbare vreemde geleidende delen',
+ 'Juiste keuze en installatie van de leidingsystemen'
+];
+const SPL=[
+ '1. Vrijschakelen (uitschakelen)',
+ '2. Beveiligen tegen herinschakelen (vergrendelen)',
+ 'Beproeving 1: meter testen op bekende spanning',
+ '3. Spanningsloosheid vaststellen (duspol of tester, geen voltpen)',
+ 'Beproeving 2: meter opnieuw testen',
+ '4. Aarden en kortsluiten (indien vereist)',
+ '5. Naburige spanningvoerende delen afschermen'
+];
+const PRESETS=['Hoofdmeterkast','Onderverdeelkast','Paddenstoel tent','Generator'];
+
+const INFO={
+ spl:{title:'Spanningsloos maken en vergrendelen',
+  text:'Installatie spanningsloos maken met de vijf stappen en de 2 beproevingen uit je cursus. Eerst vrijschakelen en vergrendelen, dan met een tester of duspol vaststellen dat er geen spanning staat. Test de meter vóór en ná op een bekende spanning.\n\nLet op: de volgorde en de omschrijving van de twee beproevingen heb ik zelf ingevuld. Controleer ze met je cursusboek en pas deze tekst aan.'},
+ rlo:{title:'R low: onderbroken zijn van geleiders',formula:'R = ρ × L / A\nρ koper ≈ 0,0175 Ω·mm²/m (20 °C)',
+  fields:[{label:'Max. weerstand',p:'limits.rlo',unit:'Ω'}],
+  extra:()=>`<div class="lim">${fld('Lengte L','limits.L',{unit:'m',mode:'decimal'})}${fld('Doorsnede A','limits.A',{unit:'mm²',mode:'decimal'})}${fld('ρ','limits.rho',{unit:'Ω·mm²/m',mode:'decimal'})}</div><div class="cx" id="rlcalc"></div>`,
+  text:'Controle dat de verbindingen van een geleider goed zijn. Spanningsloos meten met minimaal 200 mA, van hoofdaardrail naar eindpunt.\n\nGrenswaarde volgens je blad: 1 Ω, afhankelijk van lengte en doorsnede van de geleider. Het gaat vooral om de vereffeningsleidingen, en eventueel de beschermingsleidingen voor zover die niet gemeten worden met de Zs-meting.\n\nGebruik de rekenhulp hierboven voor een lange kabel: de gemeten waarde moet dichtbij de berekende liggen.'},
+ riso:{title:'R iso: isolatieweerstand',formula:'R_iso ≥ grens (MΩ)\n500 V testspanning, tussen alle geleiders',
+  fields:[{label:'Nieuwe installatie',p:'limits.riso.nieuw',unit:'MΩ'},{label:'Bestaande installatie',p:'limits.riso.bestaand',unit:'MΩ'},{label:'SELV/PELV (250 V)',p:'limits.riso.selv',unit:'MΩ'}],
+  text:'Meet de isolatieweerstand van de geleiders met afgekoppelde verbruikers (stekkers eruit, verlichting afgekoppeld of uitgeschakeld). Meet met 500 V testspanning bij gewone installaties. Bij gevaar voor schade aan apparatuur mag je met 250 V meten.\n\nNieuwe installaties: minimaal 1 MΩ. Bestaande installaties: minimaal 0,23 MΩ (zo staat het op je blad).\n\nDe waarde 0,5 MΩ voor SELV/PELV is uit mijn hoofd, niet van je blad. Controleer die in je boek.\n\nBij drie fasen meet je ook tussen de fasen onderling. De verwijzing naar NEN 1010 bepaling 61.3.3 komt uit je wensenlijst en is niet door mij gecontroleerd.'},
+ scheid:{title:'Scheiding van stroomketens',
+  text:'Controle dat stroomketens (groepen) niet onderling verbonden zijn, bijvoorbeeld door een gedeelde nul of een verkeerd aangesloten leiding.\n\nDit onderdeel staat niet op je blad met grenswaarden. Mijn uitleg hier is een eerste lezing van de rapporttitel. Vul aan met wat je docent zegt.'},
+ zi:{title:'Zi: circuitimpedantie (fase-nul, fase-fase)',formula:'Zi_max = U0 / Ia\nIa = k × In (B: 5, C: 10, D: 20)\nVoorbeeld B16: Ia = 5 × 16 = 80 A, Zi_max = 230 / 80 = 2,88 Ω',
+  fields:[{label:'k voor B',p:'limits.mult.B'},{label:'k voor C',p:'limits.mult.C'},{label:'k voor D',p:'limits.mult.D'}],
+  text:'Circuitimpedantie voor kortsluiting tussen actieve geleiders (fase-nul of fase-fase). Moet lager zijn dan 230 V / Ik. Ik is de kortsluitstroom die nodig is om de installatieautomaat tijdig uit te laten schakelen.\n\nB-karakteristiek = 5 × In, C = 10 × In, D = 20 × In.\n\nBij een generator is de kortsluitstroom lager dan bij het net. Gebruik de echte generatorgegevens en controleer of de beveiliging snel genoeg uitschakelt. Dit laatste is mijn aanvulling, niet van je blad.'},
+ zs:{title:'Zs: circuitimpedantie fase-aarde',formula:'Zs_max = U0 / Ia (zelfde grens als Zi)\nMet aardlek (cursus): Zs ≤ U / IΔn\n300 mA: 50 / 0,3 = 166 Ω',
+  fields:[{label:'Spanning in aardlekformule (cursus 50)',p:'limits.vt',unit:'V'}],
+  text:'Circuitimpedantie gemeten tussen fase en aarde. Gebruik de stand Zs-RCD zodat de aardlekschakelaar niet aanspreekt tijdens de meting.\n\nZelfde grenswaarde als bij Zi. Als de gemeten Zs hoger is dan de grenswaarde en er aardlekschakelaars zijn toegepast (zoals in een woning), is de grenswaarde 166 Ω (bij 300 mA).\n\nLet op: volgens mijn kennis geldt bij TN met aardlek Zs ≤ U0/IΔn, en 50 V/IΔn bij TT. Je blad noemt 166 Ω. Vraag je docent welke je moet gebruiken. Hierboven kun je de spanning aanpassen.'},
+ du:{title:'ΔU: spanningsverlies',formula:'Uv = (Zi − Z_REF) × In\nΔU % = Uv / U_nom × 100',
+  fields:[{label:'Verlichting',p:'limits.du.licht',unit:'%'},{label:'Overige groepen',p:'limits.du.overig',unit:'%'},{label:'PV en batterij-omvormers',p:'limits.du.pv',unit:'%'}],
+  text:'Deze meting bepaalt het spanningsverlies aan de hand van Uv = (Zi − Z_REF) × In. De instelling staat in het submenu van Zi. Het procentuele spanningsverlies wordt berekend door Uv / U_nominaal × 100%.\n\nGrenswaarden volgens je blad: 5% voor alle overige groepen, 3% voor verlichtingsgroepen, 1% voor PV en batterij-omvormers.\n\nZref is de Zi die je bij de hoofdaansluiting meet. Je vult hem één keer in en hij geldt voor alle delen. Laat je hem leeg, dan neem ik automatisch de Zi van de eerste groep van het eerste deel. Z is de Zi die je op de locatie meet. Het verschil tussen die twee geeft het spanningsverlies. Heeft je meter het percentage al berekend, vul dat dan in bij "Percentage van de meter".'},
+ rcdi:{title:'RCD-I: aanspreekstroom aardlek',formula:'I_min = k_min × IΔn\nI_max = k_max × IΔn',
+  fields:[{label:'Type A: min',p:'limits.rcdI.A.0',unit:'×'},{label:'Type A: max',p:'limits.rcdI.A.1',unit:'×'},{label:'Type B: min',p:'limits.rcdI.B.0',unit:'×'},{label:'Type B: max',p:'limits.rcdI.B.1',unit:'×'},{label:'Type AC: min',p:'limits.rcdI.AC.0',unit:'×'},{label:'Type AC: max',p:'limits.rcdI.AC.1',unit:'×'}],
+  extra:()=>typeTable(),
+  text:'De stroom waarbij de aardlekschakelaar uitschakelt. De grenswaarden voor de lekstroom staan in de tabel hierboven.\n\nType AC is niet meer toegestaan. Type A: 0,35 × IΔn tot 1,4 × IΔn (bij 30 mA: 10,5 tot 42 mA). Type B: 0,5 × IΔn tot 2 × IΔn (bij 30 mA: 15 tot 60 mA).\n\nVoor het beproeven van aardlekschakelaars moet altijd het juiste type teststroom gekozen worden dat bij het type aardlekschakelaar hoort. Op de Metrel tester doe je dit door het type aardlekschakelaar in te stellen.'},
+ rcdt:{title:'RCD-t: uitschakeltijd aardlek',
+  fields:[{label:'Normaal: 1 × IΔn',p:'limits.rcdtab.n.0',unit:'ms'},{label:'Normaal: 2 × IΔn',p:'limits.rcdtab.n.1',unit:'ms'},{label:'Normaal: 5 × IΔn',p:'limits.rcdtab.n.2',unit:'ms'},{label:'Selectief: 1 × IΔn',p:'limits.rcdtab.s.0',unit:'ms'},{label:'Selectief: 2 × IΔn',p:'limits.rcdtab.s.1',unit:'ms'},{label:'Selectief: 5 × IΔn',p:'limits.rcdtab.s.2',unit:'ms'}],
+  extra:()=>rcdTable(),
+  text:'De tijd waarbinnen de aardlekschakelaar reageert op de lekstroom. De grenswaarden staan in de tabel hierboven.\n\nBij een normale RCD-t meting wordt gemeten met 1 × IΔn.\n\nEen SELECTIEVE aardlekschakelaar (symbool S, op de schakelaar vaak bij de IΔn gedrukt) reageert trager dan een normale. De nominale stroom blijft hetzelfde. Vink "Selectief (S)" aan bij de groep, dan rekent de hulp met 500 / 200 / 150 ms.'},
+ tk:{title:'Testknop aardlekschakelaar',
+  text:'Op de testknop drukken ná de meting van stroom en uitschakeltijd. De aardlekschakelaar moet uitschakelen.\n\nDe testknop moet functioneren, want de gebruiker moet de testknop kunnen gebruiken om te controleren of de aardlekschakelaar nog werkt.\n\nIn de aardlekschakelaar of -automaat zit een beetje vet zodat het spoeltje of mechanisme soepel kan bewegen. Is dat vet uitgedroogd, dan werkt de schakelaar niet goed. Het komt heel vaak voor dat de schakelaar bij de eerste keer drukken niet reageert en de tweede keer wel. Uit onderzoek is gebleken dat gemiddeld 5 à 10 % van de aardlekschakelaars (vrijwel) vast zit. Is de schakelaar te droog, dan schakelt hij op het juiste moment niet uit.\n\nIk reken "pas bij de tweede keer" als niet voldoen. Dat is mijn keuze, geen regel uit je boek. Vraag het je docent.'},
+ draai:{title:'Draaiveld en polariteit',
+  text:'Meetstand: TMRS. Het meten van de spanning (nominaal) tussen de fasen en de nul.\n\n1-2-3 = rechtsom is goed.\n3-2-1 = linksom is fout.\n\nWelke kleur meetsnoer op welke fase hoort, heb ik niet kunnen controleren. Zoek het op in de handleiding van je Metrel en vul het in bij Snoerkleuren.'},
+ func:{title:'Functionele beproeving',
+  text:'Controleer de werking van schakelaars, bedieningen en beveiligingen. Dit onderdeel staat niet in je meetinstructie. Noteer wat je getest hebt in de toelichting van het rapport.'},
+ ra:{title:'Aardverspreidingsweerstand (RA)',formula:'TT met aardlek: RA × IΔn ≤ 50 V\nRA ≤ 50 / IΔn (300 mA: 166 Ω, 30 mA: 1667 Ω)\nHulpelektroden < 5 kΩ',
+  fields:[{label:'Max. hulpelektrode (Rc, Rp)',p:'limits.rhulp',unit:'Ω'},{label:'Tabel B16',p:'limits.ratab.B16',unit:'Ω'},{label:'Tabel B20',p:'limits.ratab.B20',unit:'Ω'},{label:'Tabel B25',p:'limits.ratab.B25',unit:'Ω'},{label:'Tabel C16',p:'limits.ratab.C16',unit:'Ω'},{label:'Tabel C20 (geen waarde)',p:'limits.ratab.C20',unit:'Ω'}],
+  text:'Bepaalt met 2 hulpelektroden de aardverspreidingsweerstand. Blauwe meetkabel op de elektrode, zwarte meetkabel op 20 m, groene meetkabel variabel. Hulpelektroden < 5 kΩ.\n\nBij toepassing van aardlekschakelaars in een TT-stelsel: max. 166 Ω. Zonder aardlek geldt de tabel op je blad: B16 = 1,9 Ω, B20 = 1,3 Ω, B25 = 0,9 Ω, C16 = 0,5 Ω, C20 = geen waarde.\n\nVoor een generator in TN-S met een eigen aardpen is dit mijn uitleg, niet van je blad: de pen wordt niet getoetst aan een vaste grens, maar Zs bepaalt of de beveiliging uitschakelt. Houd de pen toch zo laag mogelijk en controleer de eis bij de leverancier.'},
+ vis:{title:'Visuele inspectie',
+  text:'Beoordeel elk punt met Ja, Nee of n.v.t. Bij Nee schrijf je een toelichting. Die punten kun je op het tabblad Rapport automatisch in de lijst met afwijkingen zetten.\n\nDe lijst is overgenomen uit de foto’s van je rapportformulier. Staan er punten op pagina’s die ik niet kon zien, voeg die dan in je rapport apart toe.'}
+};
+
+const NETB=['Liander','Stedin','Enexis','Westland Infra','Rendo','Coteq','Enduris'];
+const STELSELS=['TT','TN-S','TN-C','TN-C-S','IT'];
+const STINFO={
+ TT:'TT staat voor terre-terre. De bron (transformator of generator) heeft een eigen aarde en de verbruiker heeft een eigen aardpen. Er loopt geen aardleiding van de bron naar de verbruiker. Een fout loopt via de grond terug, dat is een hoge weerstand, daarom is een aardlekschakelaar nodig. Toets: RA × IΔn ≤ 50 V.',
+ 'TN-S':'De aarde van de bron is verbonden met de nul. Nul (N) en aarde (PE) lopen als twee aparte geleiders van de bron tot de verbruiker (S = separate). De foutstroom loopt terug via PE. Zs moet laag genoeg zijn zodat de automaat uitschakelt. Een generator met eigen aarding die een eigen net maakt, wordt vaak zo opgezet.',
+ 'TN-C':'Nul en aarde zijn één geleider, de PEN, over de hele weg (C = combined). Komt vooral in oudere installaties voor. Let op: als de PEN onderbroken raakt, kan er gevaarlijke spanning op behuizingen komen.',
+ 'TN-C-S':'Eerst één gecombineerde geleider (PEN). Vanaf een splitspunt, vaak in de hoofdverdeler of meterkast, zijn er twee geleiders: N en PE. Na het splitspunt mogen N en PE nooit meer samengevoegd worden.',
+ 'IT':'De bron is niet geaard, of via een hoge impedantie. De verbruikers zijn wel geaard. Bij een eerste aardsluiting blijft de installatie meestal in bedrijf en meldt een isolatiebewaking de fout. Komt voor waar uitval niet gewenst is.'
+};
+INFO.stelsel={title:'Aardingsstelsel',text:''};
+const PIN={
+ rloL:['spl',()=>'Van de hoofdaardrail naar het eindpunt van de leiding. Minimaal 200 mA, eerst de meetsnoeren compenseren.'],
+ rloP:['spl',()=>'Van de hoofdaardrail naar het PE-punt of eindpunt van de potentiaalvereffening of aarding. Minimaal 200 mA, eerst compenseren.'],
+ riso:['spl',g=>g.ph==='3'?'L–PE, N–PE en L–N, daarnaast tussen de fasen onderling (L1–L2, L1–L3, L2–L3). 500 V, bij SELV/PELV 250 V.':'L–PE, N–PE en L–N. 500 V, bij SELV/PELV 250 V.'],
+ scheid:['spl',()=>'Tussen stroomketens (groepen) onderling.'],
+ draai:['on',()=>'Drie snoeren op L1, L2 en L3. Meetstand TMRS.','kleurvolgorde nog controleren in de handleiding'],
+ zi:['on',g=>g.ph==='3'?'L1–N, L2–N en L3–N: drie waarden.':'L–N.'],
+ zs:['on',g=>g.ph==='3'?'L1–PE, L2–PE en L3–PE in stand Zs-RCD: drie waarden.':'L–PE in stand Zs-RCD.'],
+ du:['on',()=>'Uit Zi: Zi bij de automaat (Zref) en bij het verste punt of de wandcontactdoos.'],
+ rcdi:['on',()=>'Aardlekschakelaar onder spanning. Stel op de tester het juiste RCD-type in.'],
+ rcdt:['on',()=>'Aardlekschakelaar onder spanning. Stel op de tester het juiste RCD-type in.'],
+ tk:['on',()=>'Op de testknop drukken ná de metingen.'],
+ ra:['unk',()=>'Blauw op de elektrode, zwart op 20 m, groen variabel (afstand wisselen ter controle).']
+};
+const LEADSEL=[['','– kies –'],['Meetsnoer','Meetsnoer'],['Meetpen A1401','Meetpen A1401'],['Losse meetsnoeren','Losse meetsnoeren']];
+const PINLBL={rloL:'R low leidingen',rloP:'R low potentiaalvereffening en aarding',riso:'Isolatieweerstand',scheid:'Scheiding van stroomketens',draai:'Draaiveld',zi:'Zi',zs:'Zs',du:'Spanningsverlies',rcdi:'RCD-I',rcdt:'RCD-t',tk:'Testknop',ra:'Aardverspreidingsweerstand'};
+const DOTT={spl:'Spanningsloos meten',on:'Onder spanning meten',unk:'Niet vastgelegd in je cursus, controleer'};
+
+/* ---------- state ---------- */
+const KEY='meethulp-nen3140-v1';
+const ST0=()=>({rloL:'',rloP:'',riso:'',scheid:'',zi:'',du:'',zs:'',rcdi:'',rcdt:'',tk:''});
+function newGrp(n,ph){return {stt:ST0(),rsn:ST0(),stBlock:'',rsnBlock:'',name:n||'Groep 1',ph:ph||'1',ba:'B',in:16,u0:230,rcd:true,rtype:'A',rS:false,idn:30,dutype:'overig',zref:'',
+ m:{rloL:'',rloP:'',riso:'',risoN:'',risoLN:'',risoL12:'',risoL13:'',risoL23:'',risoMode:'nieuw',scheid:'',zi:'',zi2:'',zi3:'',duZ:'',zs:'',zs2:'',zs3:'',duPct:'',rcdI:'',rcdT:'',rcdT2:'',rcdT5:'',tk:''}}}
+function newSec(n,ph){return {type:'installatie',name:n,spl:SPL.map(()=>false),vis:VIS.map(()=>({a:'',t:''})),onder:false,draai:'',func:'',stt:{draai:'',func:''},rsn:{draai:'',func:''},groups:[newGrp('Groep 1',ph)]}}
+function defaults(){return {v:2,t:0,
+ fixed:{insp:'',bedrijf:'',adres:'',contact:'',instr:'Metrel MI 3108',serie:'',kal:'',norm:'Gemeten en beproefd conform NEN 1010 deel 6.'},
+ zref:'',leadsel:{},
+ leads:{ra:'blauw → elektrode, zwart → 20 m, groen → variabel'},
+ info:{object:'',adres:'',cp:'',cpc:'',ogn:'',oga:'',ocp:'',occ:'',ing:'',ina:'',insp:'',inc:'',jaar:'',soort:'nieuw',stelsel:'',doel:'',emc:'',uitw:'',datum:'',omvang:'',docs:'',freq:'',volgende:'',teken:'',tekenDatum:'',
+  bron:{type:'',nb:'',fasen:'',hoofd:'',kva:'',spanning:'',eigen:false}},
+ instr:[{o:'',t:'',k:''},{o:'',t:'',k:''},{o:'',t:'',k:''}],
+ limits:{rlo:1,riso:{nieuw:1,bestaand:0.23,selv:0.5},mult:{B:5,C:10,D:20},vt:50,du:{licht:3,overig:5,pv:1},
+  rcdI:{A:[0.35,1.4],B:[0.5,2],AC:[0.5,1]},rcdtab:{n:[300,150,40],s:[500,200,150]},rhulp:5000,ratab:{B16:1.9,B20:1.3,B25:0.9,C16:0.5,C20:''},rho:0.0175,L:'',A:''},
+ notes:{},
+ aarding:{st:'',rsn:'',refs:[{rc:'',rp:'',dist:'',ra:''},{rc:'',rp:'',dist:'',ra:''},{rc:'',rp:'',dist:'',ra:''}],mode:'aardlek',idn:300,eigen:'',tab:'B16'},
+ afw:{afw:'',aan:'',con:''},
+ gebr:[],gdis:[],oordeel:'',sig:'',photos:[],
+ secs:[newSec('Hoofdmeterkast','1')],
+ cur:{tab:'start',s:0,g:0,mv:'meet',vm:'spl'}};}
+let S=defaults();
+const ui={open:{},confirm:'',msg:''};
+const bronPh=()=>(S.info&&S.info.bron&&S.info.bron.fasen==='3')?'3':'1';
+function merge(base,src){ // vul ontbrekende velden aan uit defaults
+  if(Array.isArray(base)||base===null||typeof base!=='object')return src===undefined?base:src;
+  const o=Array.isArray(src)?src:Object.assign({},base);
+  if(src&&typeof src==='object'){for(const k of Object.keys(src)){o[k]=(k in base&&base[k]&&typeof base[k]==='object'&&!Array.isArray(base[k]))?merge(base[k],src[k]):src[k]}}
+  return o;
+}
+function normalize(){
+  S.cur=S.cur||{tab:'start',s:0,g:0,mv:'meet'};
+  if(S.cur.tab==='aarding'){S.cur.tab='meten';S.cur.mv='ra'}
+  if(!S.cur.mv)S.cur.mv='meet';
+  const F=S.fixed,I=S.info;
+  if(!F.insp&&I.insp)F.insp=I.insp;
+  if(!F.bedrijf&&I.ing)F.bedrijf=I.ing;
+  if(!F.adres&&I.ina)F.adres=I.ina;
+  if(!F.contact&&I.inc)F.contact=I.inc;
+  S.photos=S.photos||[];S.gebr=S.gebr||[];S.gdis=S.gdis||[];
+  S.secs.forEach(s=>{
+    if(!s.type)s.type='installatie';
+    s.stt=Object.assign({draai:'',func:''},s.stt||{});s.rsn=Object.assign({draai:'',func:''},s.rsn||{});
+    while(s.spl.length<SPL.length)s.spl.push(false);
+    while(s.vis.length<VIS.length)s.vis.push({a:'',t:''});
+    s.groups=(s.groups&&s.groups.length)?s.groups:[newGrp('Groep 1')];
+    s.groups=s.groups.map(g=>merge(newGrp(),g));
+  });
+  S.gebr.forEach(x=>{if(!x.urg)x.urg=(x.src&&/^(m|s|ra):/.test(x.src))?'urgent':'aanbevolen'});
+  if(!S.secs.length)S.secs=[newSec('Hoofdmeterkast','1')];
+  S.cur.s=Math.min(S.cur.s||0,S.secs.length-1);
+  S.cur.g=Math.min(S.cur.g||0,S.secs[S.cur.s].groups.length-1);
+}
+const curSec=()=>S.secs[S.cur.s];
+const curGrp=()=>curSec().groups[S.cur.g];
+
+
+/* ---------- ui-bouwstenen ---------- */
+function fld(label,path,o={}){
+  const v=getP(path);
+  return `<label class="fld ${o.cls||''}"><span>${label}</span><div class="inp"><input type="text" id="${pid(path)}" data-p="${path}" value="${esc(v)}"${o.mode?` inputmode="${o.mode}"`:''}${o.ph?` placeholder="${esc(o.ph)}"`:''} autocomplete="off">${o.unit?`<em>${o.unit}</em>`:''}</div></label>`;
+}
+const HINT='Let op: dit komt ook in het klantrapport. Schrijf feitelijk.';
+function area(label,path,rows=3,ph){return `<label class="fld full"><span>${label}</span><textarea id="${pid(path)}" data-p="${path}" rows="${rows}" placeholder="${esc(ph===undefined?HINT:ph)}">${esc(getP(path))}</textarea></label>`}
+function sel(label,path,opts,rr){
+  const v=getP(path);
+  return `<label class="fld"><span>${label}</span><select id="${pid(path)}" data-p="${path}"${rr?' data-rr="1"':''}>${opts.map(([val,t])=>`<option value="${esc(val)}"${String(v)===String(val)?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+}
+function seg(path,opts,o={}){
+  const v=getP(path);
+  return `<div class="seg ${o.cls||''}" role="radiogroup">${opts.map(([val,t])=>`<label><input type="radio" name="${pid(path)}" data-pr="${path}" value="${esc(val)}"${o.rr?' data-rr="1"':''}${v===val?' checked':''}><span>${esc(t)}</span></label>`).join('')}</div>`;
+}
+function chk(path,text,rr){return `<label class="chk"><input type="checkbox" data-pb="${path}"${rr?' data-rr="1"':''}${getP(path)?' checked':''}><span>${esc(text)}</span></label>`}
+function infoBtn(k){return `<button class="i" data-act="info" data-k="${k}" aria-expanded="${ui.open[k]?'true':'false'}" aria-label="Uitleg: ${esc(INFO[k].title)}">i</button>`}
+function infoPanel(k){
+  if(!ui.open[k])return '';
+  const I=INFO[k];
+  return `<div class="info"><div class="ih">${esc(I.title)}</div>${I.formula?`<div class="fm">${esc(I.formula)}</div>`:''}${(I.fields&&I.fields.length)?`<div class="lim">${I.fields.map(f=>fld(f.label,f.p,{unit:f.unit,mode:'decimal'})).join('')}</div>`:''}${I.extra?I.extra():''}<label class="fld"><span>Toelichting (aanpasbaar)</span><textarea id="note-${k}" data-note="${k}" rows="9">${esc(S.notes[k]!=null?S.notes[k]:I.text)}</textarea></label><button class="lnk" data-act="resetnote" data-k="${k}">Herstel standaardtekst</button></div>`;
+}
+function rcdIcon(t){
+  const w='stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  const sine=y=>`<path d="M7 ${y} C10 ${y-7} 14 ${y-7} 17 ${y} C20 ${y+7} 24 ${y+7} 27 ${y} C30 ${y-7} 33 ${y-7} 37 ${y}" ${w}/>`;
+  const hump=y=>`<path d="M7 ${y} C9 ${y-8} 13 ${y-8} 15 ${y} C17 ${y-8} 21 ${y-8} 23 ${y} C25 ${y-8} 29 ${y-8} 31 ${y} C33 ${y-8} 35 ${y-8} 37 ${y}" ${w}/>`;
+  let inner='';
+  if(t==='AC')inner=sine(17);
+  else if(t==='A')inner=sine(12)+hump(27);
+  else inner=sine(9)+hump(20)+`<path d="M7 30 H37" ${w} stroke-dasharray="3 3"/>`;
+  return `<svg class="ico" viewBox="0 0 44 34" width="44" height="34" role="img" aria-label="Symbool type ${t}"><rect x="1.5" y="1.5" width="41" height="31" rx="2" ${w}/>${inner}</svg>`;
+}
+function typeSeg(path){
+  const v=getP(path);
+  return `<div class="seg" role="radiogroup">${['AC','A','B'].map(t=>`<label><input type="radio" name="${pid(path)}" data-pr="${path}" value="${t}"${v===t?' checked':''}><span class="ty">${rcdIcon(t)}<b>${t}</b></span></label>`).join('')}</div>`;
+}
+function typeTable(){
+  const R=S.limits.rcdI;
+  return `<table class="tt"><tr><th>Type</th><th>Symbool</th><th>Onder</th><th>Boven</th></tr>${[['AC','AC (niet meer toegestaan)'],['A','A'],['B','B']].map(([t,l])=>`<tr><td${t==='AC'?' style="color:var(--bad)"':''}>${l}</td><td>${rcdIcon(t)}</td><td>${fx(num(R[t][0]))} × IΔn</td><td>${fx(num(R[t][1]))} × IΔn</td></tr>`).join('')}</table>`;
+}
+function rcdTable(){
+  const T=S.limits.rcdtab;
+  return `<table class="tt"><tr><th>IΔn</th><th>1 ×</th><th>2 ×</th><th>5 ×</th></tr>${[10,30,100,300,500].map(i=>`<tr><td>${i} mA</td><td>${i} mA</td><td>${2*i} mA</td><td>${5*i} mA</td></tr>`).join('')}<tr><td>Uitschakeltijd</td>${T.n.map(x=>`<td>${fx(num(x),0)} ms</td>`).join('')}</tr><tr><td>Selectief <span class="sbox">S</span></td>${T.s.map(x=>`<td>${fx(num(x),0)} ms</td>`).join('')}</tr></table>`;
+}
+function rcdHint(g){
+  const i=num(g.idn);if(!(i>0))return 'Vul IΔn in bij de gegevens van de groep.';
+  return `Teststroom: 1 × = ${fx(i,0)} mA, 2 × = ${fx(2*i,0)} mA, 5 × = ${fx(5*i,0)} mA${g.rS?'. Selectieve aardlek: trager toegestaan.':'.'}`;
+}
+const pill=ok=>ok===null?'<span class="pill n">niet gemeten</span>':ok?'<span class="pill ok">Voldoet</span>':'<span class="pill bad">Voldoet niet</span>';
+function dot(k){const p=PIN[k];return p?`<span class="vd ${p[0]}" role="img" aria-label="${DOTT[p[0]]}" title="${DOTT[p[0]]}"></span>`:''}
+function pinsBlock(k,g){const p=PIN[k];if(!p)return '';return `<p class="hint pn">${esc(p[1](g||{}))}</p>${p[2]?`<p class="hint pn">Let op: ${esc(p[2])}.</p>`:''}<div class="grid">${sel('Aansluiten met','leadsel.'+k,LEADSEL)}</div>`}
+function mh(title,k,infoKey){return `<div class="mh"><b>${title}</b><span class="mhr">${dot(k)}${infoBtn(infoKey||k)}</span></div>`}
+function meas(key,title,infoKey,fields,si,gi,pk){
+  const g=S.secs[si].groups[gi];
+  return `<div class="m">${mh(title,pk||key,infoKey)}${infoPanel(infoKey)}${stWrap(g,`secs.${si}.groups.${gi}.`,pk||key,`${pinsBlock(pk||key,g)}<div class="grid">${fields}</div><div class="res" data-res="${key}" data-s="${si}" data-g="${gi}"></div>`)}</div>`;
+}
+const one=(path,unit,lbl)=>fld(lbl||'Gemeten waarde',path,{unit,mode:'decimal'});
+
+/* ---------- foto's ---------- */
+const PH={};
+const phKey=id=>'meethulp-ph-'+id;
+let dbCol=null;const unsynced=[];
+/* IndexedDB: store 'kv' (staat) en store 'photos' (foto's als data-URL) */
+let idb=null;
+function idbOpen(){return new Promise((res,rej)=>{
+  if(!window.indexedDB)return rej(new Error('geen indexedDB'));
+  const r=indexedDB.open('meethulp',1);
+  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv');if(!d.objectStoreNames.contains('photos'))d.createObjectStore('photos')};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error('geblokkeerd'));
+})}
+const idbReq=(store,mode,fn)=>new Promise((res,rej)=>{
+  if(!idb)return rej(new Error('geen idb'));
+  try{const tx=idb.transaction(store,mode);const rq=fn(tx.objectStore(store));tx.oncomplete=()=>res(rq&&rq.result);tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error)}catch(e){rej(e)}
+});
+const idbGet=(st,k)=>idbReq(st,'readonly',o=>o.get(k));
+const idbPut=(st,k,v)=>idbReq(st,'readwrite',o=>o.put(v,k));
+const idbDel=(st,k)=>idbReq(st,'readwrite',o=>o.delete(k));
+function savePhoto(id){
+  idbPut('photos',id,PH[id]).then(()=>{try{localStorage.removeItem(phKey(id))}catch(e){}}).catch(()=>{try{localStorage.setItem(phKey(id),PH[id])}catch(e){}});
+  if(dbCol){try{dbCol.doc('ph-'+id).set({d:PH[id]}).catch(()=>{})}catch(e){}}else unsynced.push(id);
+}
+function dropPhotoStore(id){
+  idbDel('photos',id).catch(()=>{});
+  try{localStorage.removeItem(phKey(id))}catch(e){}
+  if(dbCol){try{const d=dbCol.doc('ph-'+id);if(d.delete)d.delete().catch(()=>{})}catch(e){}}
+  delete PH[id];
+}
+async function loadPhotos(){
+  let changed=false;
+  for(const p of S.photos){
+    if(PH[p.id])continue;
+    let v=null;
+    if(idb){try{v=await idbGet('photos',p.id)}catch(e){}}
+    if(!v){ // oude opslag: verhuis naar IndexedDB
+      try{const l=localStorage.getItem(phKey(p.id));if(l){v=l;if(idb)idbPut('photos',p.id,l).then(()=>{try{localStorage.removeItem(phKey(p.id))}catch(e){}}).catch(()=>{})}}catch(e){}
+    }
+    if(v){PH[p.id]=v;changed=true;continue}
+    if(dbCol){dbCol.doc('ph-'+p.id).get().then(sn=>{if(sn.exists&&sn.data()&&sn.data().d){PH[p.id]=sn.data().d;idbPut('photos',p.id,PH[p.id]).catch(()=>{});render()}}).catch(()=>{})}
+  }
+  return changed;
+}
+function readImg(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=fr.result};fr.readAsDataURL(file)})}
+async function addPhoto(ref,file){
+  try{
+    const im=await readImg(file);
+    const sc=Math.min(1,800/Math.max(im.width,im.height));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*sc));c.height=Math.max(1,Math.round(im.height*sc));
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    let q=.6,url=c.toDataURL('image/jpeg',q);
+    while(url.length>170000&&q>.3){q-=.1;url=c.toDataURL('image/jpeg',q)}
+    const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    PH[id]=url;S.photos.push({id,ref,cap:''});savePhoto(id);touch();render();
+  }catch(e){ui.msg='Foto toevoegen lukte niet.';render()}
+}
+function photoAdd(ref){return `<label class="btn ghost sm">📷 Foto toevoegen<input class="vh" type="file" accept="image/*" multiple data-photo="${esc(ref)}"></label>`}
+function photoBlock(ref){
+  const ps=S.photos.filter(p=>p.ref===ref);
+  return `<div class="ph">${ps.map(p=>`<span class="th">${PH[p.id]?`<img src="${PH[p.id]}" alt="Foto">`:'<img alt="Foto wordt geladen">'}<button class="x" data-act="delph" data-id="${p.id}" aria-label="Foto verwijderen">✕</button></span>`).join('')}${photoAdd(ref)}</div>`;
+}
+function refLabel(ref){
+  const a=ref.split(':');
+  if(a[0]==='obj')return 'Overzicht object';
+  if(a[0]==='los')return 'Losse foto';
+  if(a[0]==='v'){const s=S.secs[+a[1]];return `${s?s.name:'?'}: visueel punt ${(+a[2])+1}`}
+  if(a[0]==='m'){const s=S.secs[+a[1]],g=s&&s.groups[+a[2]];const r=g?rowsFor(s,g).find(x=>x.key===a[3]):null;return `${s?s.name:'?'} / ${g?g.name:'?'}: ${r?r.label:a[3]}`}
+  if(a[0]==='s'){const s=S.secs[+a[1]];return `${s?s.name:'?'}: ${a[2]==='draai'?'draaiveld':'functionele beproeving'}`}
+  if(a[0]==='ra'){return 'Aarding: '+a[1]}
+  if(a[0]==='g'){const x=S.gebr.find(y=>y.id===a[1]);return 'Gebrek: '+(x&&x.txt?x.txt.slice(0,60):'(zonder tekst)')}
+  return ref;
+}
+
+/* ---------- aardingsstelsel tekening ---------- */
+function stelselSVG(t){
+  const w='stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  const tx=(x,y,s,sz)=>`<text x="${x}" y="${y}" font-size="${sz||10}" fill="currentColor" text-anchor="middle" font-family="IBM Plex Mono,monospace">${s}</text>`;
+  const earth=(x,y)=>`<path d="M${x} ${y} v10 M${x-10} ${y+10} h20 M${x-6} ${y+14} h12 M${x-2} ${y+18} h4" ${w}/>`;
+  const ln=(y,x1,x2,lab)=>`<path d="M${x1} ${y} H${x2}" ${w}/>${tx((x1+x2)/2,y-5,lab)}`;
+  let s=`<rect x="10" y="16" width="52" height="92" rx="4" ${w}/>${tx(36,66,'bron')}<rect x="250" y="16" width="60" height="92" rx="4" ${w}/>${tx(280,66,'verbruiker',9)}`;
+  const srcEarth=`<path d="M36 108 v0" ${w}/>${earth(36,108)}${tx(36,142,'aarde bron',9)}`;
+  const tie=`<path d="M72 58 V88" ${w}/><circle cx="72" cy="58" r="2.5" fill="currentColor"/><circle cx="72" cy="88" r="2.5" fill="currentColor"/>`;
+  if(t==='TT')s+=ln(34,62,250,'L')+ln(58,62,250,'N')+srcEarth+earth(280,108)+tx(280,142,'eigen aarde',9);
+  else if(t==='TN-S')s+=ln(34,62,250,'L')+ln(58,62,250,'N')+ln(88,62,250,'PE')+tie+srcEarth;
+  else if(t==='TN-C')s+=ln(34,62,250,'L')+ln(66,62,250,'PEN')+srcEarth;
+  else if(t==='TN-C-S')s+=ln(34,62,250,'L')+ln(70,62,150,'PEN')+ln(58,150,250,'N')+ln(88,150,250,'PE')+`<path d="M150 58 V88" ${w}/><circle cx="150" cy="70" r="2.5" fill="currentColor"/>`+srcEarth;
+  else if(t==='IT')s+=ln(34,62,250,'L1')+ln(58,62,250,'L2')+`<path d="M36 108 v8" ${w} stroke-dasharray="3 3"/><rect x="28" y="116" width="16" height="10" ${w}/>${tx(36,135,'Z of niets',9)}`+earth(280,108)+tx(280,142,'eigen aarde',9);
+  return `<svg class="svgst" viewBox="0 0 320 165" role="img" aria-label="Schema ${t}">${s}</svg>`;
+}
+function stelselItem(t){return `<div class="info"><div class="ih">${t}</div>${stelselSVG(t)}<div>${esc(STINFO[t])}</div></div>`}
+function stelselPanel(){
+  if(!ui.open.stelsel)return '';
+  const t=S.info.stelsel;
+  const note=`<p class="hint">Eerste opzet van mij, nog te controleren met je boek. De tekeningen zijn mijn eigen schetsen.</p>`;
+  const all=ui.open.stelselAll;
+  return note+(all?STELSELS.map(stelselItem).join(''):(t&&STINFO[t]?stelselItem(t):'<p class="hint">Kies eerst een type.</p>'))+`<button class="lnk" data-act="info" data-k="stelselAll">${all?'Alleen het gekozen type tonen':'Toon alle vijf de types'}</button>`;
+}
+
+/* ---------- berekeningen ---------- */
+function zrefInfo(g){
+  const x=num(S.zref);if(!isNaN(x))return {v:x,src:'ingevuld'};
+  const g0=S.secs[0]&&S.secs[0].groups[0];
+  if(g0){const ks=g0.ph==='3'?['zi','zi2','zi3']:['zi'];const v=ks.map(k=>num(g0.m[k])).filter(a=>!isNaN(a));if(v.length)return {v:Math.max(...v),src:'overgenomen uit Zi van '+S.secs[0].name+' / '+g0.name}}
+  const o=num(g&&g.zref);if(!isNaN(o))return {v:o,src:'uit eerdere invoer'};
+  return {v:0,src:'niet ingevuld (0 Ω)'};
+}
+const sk=k=>/^riso/.test(k)?'riso':/^rcdt/.test(k)?'rcdt':k;
+function effSt(g,key){
+  const k=sk(key);
+  if(['rloL','rloP','riso','scheid'].includes(k)&&g.stBlock)return {st:g.stBlock,rsn:g.rsnBlock||''};
+  return {st:(g.stt&&g.stt[k])||'',rsn:(g.rsn&&g.rsn[k])||''};
+}
+const SROW=(key,label,e)=>({key,label,val:'',unit:'',limT:'',ok:null,calc:'',det:'',status:e.st,rsn:e.rsn});
+function rowsFor(s,g){
+  const out=[],seen={};
+  rowsFor0(s,g).forEach(r=>{
+    const k=sk(r.key),e=effSt(g,r.key);
+    if(!e.st){out.push(r);return}
+    if(seen[k])return;seen[k]=1;
+    out.push(SROW(k,k==='riso'?'Isolatieweerstand':k==='rcdt'?'Aanspreektijd RCD-t':r.label,e));
+  });
+  return out;
+}
+function rowsFor0(s,g){
+  const L=S.limits,m=g.m,r=[];
+  const R=(key,label,val,unit,limT,ok,calc,det)=>r.push({key,label,val,unit,limT,ok,calc:calc||'',det:det||''});
+  const ph3=g.ph==='3';
+  const lim=num(L.rlo);
+  ['rloL','rloP'].forEach(k=>{const v=num(m[k]);R(k,k==='rloL'?'R low leidingen':'R low potentiaalvereffening en aarding',m[k],'Ω',`≤ ${fx(lim)} Ω`,isNaN(lim)?null:cmp(v,x=>x<=lim))});
+  const rl=num(L.riso[m.risoMode]);
+  const rk=[['riso',ph3?'L–PE':'L–PE'],['risoN','N–PE'],['risoLN','L–N']];
+  if(ph3)rk.push(['risoL12','L1–L2'],['risoL13','L1–L3'],['risoL23','L2–L3']);
+  rk.forEach(([k,l],i)=>{
+    if(i>0&&m[k]==='')return;
+    R(k,'Isolatieweerstand '+l,m[k],'MΩ',`≥ ${fx(rl,3)} MΩ (${({nieuw:'nieuw',bestaand:'bestaand',selv:'SELV/PELV'})[m.risoMode]})`,isNaN(rl)?null:cmp(num(m[k]),x=>x>=rl));
+  });
+  R('scheid','Scheiding van stroomketens',m.scheid==='ok'?'akkoord':m.scheid==='nok'?'niet akkoord':'','',m.scheid?'':'', m.scheid?m.scheid==='ok':null);
+  const k=num(L.mult[g.ba]),In=num(g.in),u0=num(g.u0)||230;
+  const zmax=(k>0&&In>0)?u0/(k*In):NaN;
+  const zc=isNaN(zmax)?'':`Zmax = ${fx(u0,0)} / (${fx(k,0)} × ${fx(In)}) = ${fx(zmax)} Ω`;
+  const keys=b=>ph3?[b,b+'2',b+'3']:[b];
+  const worst=b=>{const v=keys(b).map(x=>num(m[x])).filter(x=>!isNaN(x));return v.length?Math.max(...v):NaN};
+  const det=b=>ph3?keys(b).map((x,i)=>`L${i+1} ${m[x]===''?'–':m[x]}`).join(' / '):'';
+  const zi=worst('zi'),zs=worst('zs');
+  R('zi',ph3?'Circuitimpedantie Zi (slechtste van L1–L3)':'Circuitimpedantie Zi',isNaN(zi)?'':fx(zi,3),'Ω',`≤ ${fx(zmax)} Ω`,isNaN(zmax)?null:cmp(zi,x=>x<=zmax),zc,det('zi'));
+  const idn=num(g.idn),vt=num(L.vt);
+  const alt=(g.rcd&&idn>0&&vt>0)?vt/(idn/1000):NaN;
+  let zlim=`≤ ${fx(zmax)} Ω`;if(!isNaN(alt))zlim+=` (of ≤ ${fx(alt,0)} Ω met aardlek ${fx(idn,0)} mA)`;
+  R('zs',ph3?'Circuitimpedantie Zs (slechtste van L1–L3)':'Circuitimpedantie Zs',isNaN(zs)?'':fx(zs,3),'Ω',zlim,(isNaN(zmax)&&isNaN(alt))?null:cmp(zs,x=>(!isNaN(zmax)&&x<=zmax)||(!isNaN(alt)&&x<=alt)),zc,det('zs'));
+  const zrI=zrefInfo(g);const zr=zrI.v;let pct=NaN,uv=NaN;
+  const zdu=!isNaN(num(m.duZ))?num(m.duZ):zi;
+  if(!isNaN(zdu)&&In>0){uv=(zdu-zr)*In;pct=uv/u0*100}else if(!isNaN(num(m.duPct)))pct=num(m.duPct);
+  const dl=num(L.du[g.dutype]);
+  R('du','Spanningsverlies ΔU',isNaN(pct)?'':fx(pct,2),'%',`≤ ${fx(dl)} % (${({licht:'verlichting',overig:'overige groepen',pv:'PV/omvormer'})[g.dutype]})`,isNaN(dl)?null:cmp(pct,x=>x<=dl),isNaN(uv)?'':`Uv = (${fx(zdu)} − ${fx(zr)}) × ${fx(In)} = ${fx(uv)} V → ${fx(pct)} % (Zref ${zrI.src})`);
+  if(g.rcd){
+    const rg=L.rcdI[g.rtype]||[NaN,NaN];const lo=num(rg[0]),hi=num(rg[1]);
+    const okI=(idn>0&&!isNaN(lo)&&!isNaN(hi))?cmp(num(m.rcdI),x=>x>=lo*idn&&x<=hi*idn):null;
+    R('rcdi','Aanspreekstroom RCD-I',m.rcdI,'mA',(idn>0)?`${fx(lo*idn)} – ${fx(hi*idn)} mA (type ${g.rtype}, IΔn ${fx(idn,0)} mA)`:'',okI);
+    const tab=L.rcdtab[g.rS?'s':'n'];
+    [['rcdt','Aanspreektijd RCD-t bij 1×IΔn','rcdT',0],['rcdt2','Aanspreektijd RCD-t bij 2×IΔn','rcdT2',1],['rcdt5','Aanspreektijd RCD-t bij 5×IΔn','rcdT5',2]].forEach(([key,label,mk,i])=>{
+      if(i>0&&m[mk]==='')return;
+      const tl=num(tab[i]);R(key,label,m[mk],'ms',`≤ ${fx(tl,0)} ms${g.rS?' (selectief)':''}`,isNaN(tl)?null:cmp(num(m[mk]),x=>x<=tl));
+    });
+    R('tk','Testknop RCD',({ok:'akkoord',second:'pas bij 2e keer',nok:'niet akkoord'})[m.tk]||'','','moet uitschakelen',m.tk?m.tk==='ok':null,m.tk==='second'?'Reageert pas bij de tweede keer: mechanisme mogelijk uitgedroogd. Noteer als afwijking.':'');
+  }
+  return r;
+}
+function secRows(s){return secRows0(s).map(r=>{const e=effSt(s,r.key);return e.st?SROW(r.key,r.label,e):r})}
+function secRows0(s){
+  const o=[];
+  if(s.groups.some(g=>g.ph==='3'))o.push({key:'draai',label:'Draaiveld',val:s.draai,unit:'',limT:'1-2-3 rechtsom is goed',ok:s.draai?s.draai==='rechtsom':null,calc:'',det:''});
+  o.push({key:'func',label:'Functionele beproeving',val:s.func==='ok'?'akkoord':s.func==='nok'?'niet akkoord':'',unit:'',limT:'',ok:s.func?s.func==='ok':null,calc:'',det:''});
+  return o;
+}
+
+function aardRows(){
+  const A=S.aarding;
+  if(A.st)return [SROW('ra0','Aardverspreidingsweerstand RA',{st:A.st,rsn:A.rsn})];
+  return aardRows0();
+}
+function aardRows0(){
+  const A=S.aarding,L=S.limits,out=[];
+  let lim=NaN,limT='';
+  if(A.mode==='aardlek'){const i=num(A.idn);lim=i>0?50/(i/1000):NaN;limT=`≤ ${fx(lim,0)} Ω (50 V / ${fx(i,0)} mA)`}
+  else if(A.mode==='automaat'){lim=num(L.ratab[A.tab]);limT=isNaN(lim)?'geen waarde in tabel':`≤ ${fx(lim)} Ω (${A.tab}, cursustabel)`}
+  else{lim=num(A.eigen);limT=isNaN(lim)?'':`≤ ${fx(lim)} Ω`}
+  const rh=num(L.rhulp);
+  A.refs.forEach((r,i)=>{
+    const n=i+1;
+    out.push({key:'ra'+i,label:`Referentie ${n}: RA`,val:r.ra,unit:'Ω',limT,ok:isNaN(lim)?null:cmp(num(r.ra),x=>x<=lim),calc:''});
+    out.push({key:'rh'+i,label:`Referentie ${n}: Rc / Rp`,val:(r.rc||'–')+' / '+(r.rp||'–'),unit:'Ω',limT:`< ${fx(rh,0)} Ω`,ok:(r.rc===''&&r.rp==='')?null:(isNaN(rh)?null:[r.rc,r.rp].filter(x=>x!=='').every(x=>num(x)<rh)),calc:''});
+  });
+  return out;
+}
+function allRows(s){const o=[];s.groups.forEach(g=>rowsFor(s,g).forEach(r=>o.push(r)));secRows(s).forEach(r=>o.push(r));return o}
+function secStatus(s){
+  const rows=allRows(s);const nee=s.vis.some(v=>v.a==='nee');
+  if(nee||rows.some(r=>r.ok===false))return 'bad';
+  if(rows.some(r=>r.ok===true))return 'ok';
+  return '';
+}
+function grpStatus(s,g){const rows=rowsFor(s,g);if(rows.some(r=>r.ok===false))return 'bad';if(rows.some(r=>r.ok===true))return 'ok';return ''}
+function counts(){
+  let ok=0,bad=0,open=0,nu=0,nr=0;
+  const add=r=>{if(r.status){if(r.status==='nu'){nu++;if(!r.rsn)nr++}return}if(r.ok===true)ok++;else if(r.ok===false)bad++;else open++};
+  S.secs.forEach(s=>{allRows(s).forEach(add);s.vis.forEach(v=>{if(v.a==='nee')bad++;else if(v.a==='ja')ok++;else if(v.a==='')open++})});
+  aardRows().forEach(r=>{if(r.status||r.ok!==null)add(r)});
+  return {ok,bad,open,nu,nr};
+}
+
+/* ---------- gebreken ---------- */
+const gid=()=>'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function gebrekCandidates(){
+  const out=[];
+  S.secs.forEach((s,si)=>{
+    s.groups.forEach((g,gi)=>rowsFor(s,g).forEach(r=>{if(r.ok===false)out.push({src:`m:${si}:${gi}:${r.key}`,txt:`${s.name} / ${g.name}: ${r.label} ${r.val} ${r.unit} voldoet niet (grens ${r.limT}).`,maat:r.key==='tk'?'Aardlekschakelaar direct vervangen en de groep buiten dienst nemen.':'',norm:''})}));
+    secRows(s).forEach(r=>{if(r.ok===false)out.push({src:`s:${si}:${r.key}`,txt:`${s.name}: ${r.label} ${r.val}.`,maat:'',norm:''})});
+    s.vis.forEach((v,i)=>{if(v.a==='nee')out.push({src:`v:${si}:${i}`,txt:`${s.name}: visueel punt ${i+1} niet in orde: ${VIS[i]}.${v.t?' '+v.t:''}`,maat:'',norm:''})});
+  });
+  aardRows().forEach(r=>{if(r.ok===false)out.push({src:'ra:'+r.key,txt:`Aarding: ${r.label} ${r.val} ${r.unit} voldoet niet (grens ${r.limT}).`,maat:'',norm:''})});
+  return out;
+}
+const pendingGebr=()=>gebrekCandidates().filter(c=>!S.gebr.some(x=>x.src===c.src)&&!S.gdis.includes(c.src));
+function fillGebr(){const p=pendingGebr();p.forEach(c=>S.gebr.push({id:gid(),src:c.src,txt:c.txt,maat:c.maat,norm:c.norm,urg:/^(m|s|ra):/.test(c.src)?'urgent':'aanbevolen'}));if(p.length)touch();return p.length}
+
+/* ---------- views ---------- */
+ui.det={};ui.splShow={};
+const det=(k,title,body,def)=>`<details class="card" data-k="${k}"${(ui.det[k]===undefined?def:ui.det[k])?' open':''}><summary>${title}</summary>${body}</details>`;
+function fixChips(){document.querySelectorAll('#chips .chips').forEach(c=>{const b=c.querySelector('[aria-pressed="true"]');if(b)c.scrollLeft=Math.max(0,b.offsetLeft-(c.clientWidth-b.offsetWidth)/2)})}
+function chipsHTML(){
+  const t=S.cur.tab;
+  if(!((t==='meten'&&S.cur.mv!=='ra')||t==='visueel'))return '';
+  let h=`<div class="chiplbl">Deel van de installatie: <b>${esc(curSec().name||'')}</b></div><div class="chips">`;
+  S.secs.forEach((s,i)=>{h+=`<button class="chip" data-act="sec" data-i="${i}" aria-pressed="${i===S.cur.s}"><span class="dot ${secStatus(s)}"></span>${esc(s.name||'Naamloos')}</button>`});
+  h+=`<button class="chip add" data-act="addform">+ Deel</button></div>`;
+  if(ui.addOpen){
+    h+=`<div class="card" style="margin:6px 0"><div class="chips">${PRESETS.map(p=>`<button class="chip add" data-act="addsec" data-name="${esc(p)}">${esc(p)}</button>`).join('')}</div><div class="row" style="margin-top:8px"><input type="text" id="newsec" placeholder="Eigen naam, bijv. Paddenstoel tent 3" style="flex:1;min-width:0"><button class="btn" data-act="addsec" data-name="">Toevoegen</button></div></div>`;
+  }
+  if(t==='meten'){
+    const s=curSec();
+    h+=`<div class="chiplbl">Groep of meetpunt in ${esc(s.name||'dit deel')}</div><div class="chips">`;
+    s.groups.forEach((g,i)=>{h+=`<button class="chip" data-act="grp" data-i="${i}" aria-pressed="${i===S.cur.g}"><span class="dot ${grpStatus(s,g)}"></span>${esc(g.name||'Groep')}</button>`});
+    h+=`<button class="chip add" data-act="addgrp">+ Groep</button></div>`;
+  }
+  return h;
+}
+function navHTML(){
+  const T=[['start','⌂','Start'],['gegevens','▤','Gegevens'],['meten','Ω','Metingen'],['visueel','◉','Visuele inspectie'],['foto','▣','Fotobijlage'],['gebreken','!','Gebreken'],['rapport','✓','Rapport'],['klant','▦','Klantrapport']];
+  return T.map(([k,ic,l])=>`<button data-act="tab" data-k="${k}"${S.cur.tab===k?' aria-current="page"':''}>${ic} ${l}</button>`).join('');
+}
+function sumHTML(){const c=counts();return `<div><b>${c.ok}</b>voldoet</div><div><b style="color:${c.bad?'var(--bad)':'inherit'}">${c.bad}</b>voldoet niet</div><div><b>${c.open}</b>nog open</div>${c.nu?`<div><b style="color:var(--warn)">${c.nu}</b>niet uitgevoerd</div>`:''}`}
+function wipeBlock(){return `<button class="btn ${ui.confirm==='wipe'?'dangerx':'danger'}" data-act="wipe">${ui.confirm==='wipe'?'Zeker weten? Alles wissen (heb je eerst opgeslagen?)':'Nieuwe inspectie beginnen'}</button>`}
+function viewStart(){
+  const I=S.info;
+  const nVis=S.secs.reduce((a,s)=>a+s.vis.filter(v=>v.a).length,0),totVis=S.secs.length*VIS.length;
+  const open=pendingGebr().length;
+  const nG=S.secs.reduce((a,s)=>a+s.groups.length,0);
+  const tile=(k,ic,t,sub)=>`<button class="tile" data-act="tab" data-k="${k}"><b>${ic}</b><span>${t}</span><small>${esc(sub)}</small></button>`;
+  return `<div class="tiles">
+   ${tile('gegevens','▤','Gegevens',I.object||'object, bron en stelsel')}
+   ${tile('meten','Ω','Metingen',S.secs.length+(S.secs.length>1?' delen, ':' deel, ')+nG+(nG>1?' groepen':' groep'))}
+   ${tile('visueel','◉','Visuele inspectie',nVis+' van '+totVis+' beoordeeld')}
+   ${tile('foto','▣','Fotobijlage',S.photos.length+' foto’s')}
+   ${tile('gebreken','!','Gebreken',S.gebr.length+' in de lijst'+(open?', '+open+' nieuw uit afkeur':''))}
+   ${tile('klant','▦','Klantrapport','nette uitdraai, opslaan en openen')}
+   ${tile('rapport','✓','Rapport',({goed:'Goedgekeurd',niet:'Niet goedgekeurd'})[S.oordeel]||'eindoordeel nog open')}
+  </div>
+  <section class="card"><h2>Overzicht</h2><div class="sum">${sumHTML()}</div></section>
+  <details class="card"><summary>Op het beginscherm van je telefoon zetten</summary>
+   ${ui.installEvt?'<button class="btn" data-act="install" style="margin-bottom:8px">Installeer als app</button>':''}<p class="hint">iPhone: open deze pagina in Safari, tik op de deelknop en kies “Zet op beginscherm”. Android: menu van de browser, “Toevoegen aan startscherm”.</p>
+   <p class="hint" style="margin-top:8px">Na de eerste keer laden werkt de app ook zonder bereik. Je gegevens staan in de opslag van deze browser op dit toestel (IndexedDB). Wis je browsergegevens, dan zijn ze weg: bewaar dus regelmatig een bestand via Klantrapport.</p></details>
+  <section class="card"><h2>Nieuwe inspectie</h2><p class="hint" style="margin-bottom:8px">Bewaar eerst je werk via Klantrapport → Opslaan als bestand. Dit wist het object, de metingen, de visuele punten, de gebreken en de foto’s. Je vaste gegevens (inspecteur, bedrijf, instrument, norm) en je aangepaste grenswaarden blijven staan.</p>${wipeBlock()}</section>`;
+}
+function viewGegevens(){
+  const I='info.',B=S.info.bron,F='fixed.';
+  const G=(l,p,o)=>fld(l,p,o);
+  const objB=`<div class="grid">${G('Naam te inspecteren object',I+'object',{cls:'full'})}${G('Adres',I+'adres',{cls:'full'})}${G('Naam contactpersoon',I+'cp')}${G('Contactgegevens',I+'cpc')}</div><h3>Overzichtsfoto’s van de situatie</h3>${photoBlock('obj')}`;
+  const fas=`<div class="fld"><span>Aantal fasen</span>${seg('info.bron.fasen',[['1','1 fase'],['3','3 fasen']])}</div>`;
+  const bronB=`<div class="fld"><span>Bron van de installatie</span>${seg('info.bron.type',[['net','Netaansluiting'],['gen','Generatorset'],['anders','Anders']],{rr:true})}</div>
+   ${B.type==='net'?`<div class="grid" style="margin-top:10px">${sel('Netbeheerder (optioneel)','info.bron.nb',[['','– leeg –']].concat(NETB.map(n=>[n,n])))}${fas}${G('Hoofdzekering','info.bron.hoofd',{unit:'A',mode:'decimal'})}</div>`:''}
+   ${B.type==='gen'?`<div class="grid" style="margin-top:10px">${G('Vermogen','info.bron.kva',{unit:'kVA',mode:'decimal'})}${G('Spanning','info.bron.spanning',{unit:'V',mode:'decimal'})}${fas}<div class="fld"><span>Aarding</span>${chk('info.bron.eigen','Generator draait op eigen aarding')}</div></div>`:''}
+   ${B.type==='anders'?`<div class="grid" style="margin-top:10px">${fas}${G('Omschrijving bron','info.bron.nb',{cls:'full'})}</div>`:''}`;
+  const stB=`<div class="mh"><span class="hint">Kies het stelsel</span>${infoBtn('stelsel')}</div>${seg('info.stelsel',STELSELS.map(t=>[t,t]),{rr:true})}${stelselPanel()}`;
+  const fixB=`<p class="hint" style="margin-bottom:8px">Deze gegevens blijven bewaard bij een nieuwe inspectie.</p><div class="grid">${G('Naam inspecteur',F+'insp')}${G('Bedrijf',F+'bedrijf')}${G('Adres',F+'adres',{cls:'full'})}${G('Contactgegevens',F+'contact',{cls:'full'})}${G('Meetinstrument',F+'instr',{cls:'full'})}${G('Serienummer',F+'serie')}${G('Kalibratiedatum',F+'kal',{ph:'dd-mm-jjjj'})}${area('Toegepaste norm',F+'norm',2)}</div><p class="warn" style="margin-top:8px">Zet hier geen “Scope 8”: dat is een SCIOS-certificeringsscope en mag alleen met certificaat. NEN 3140 of andere normen alleen als het voor jouw werk klopt.</p>`;
+  const xB=`<div class="grid">${S.instr.map((_,i)=>`<h3 class="full" style="margin:6px 0 0">Extra instrument ${i+1}</h3>${G('Omschrijving','instr.'+i+'.o',{cls:'full'})}${G('Type','instr.'+i+'.t')}${G('Kalibratiedatum','instr.'+i+'.k',{ph:'dd-mm-jjjj'})}`).join('')}</div>`;
+  return `<p class="hint">Alles is optioneel en blijft bewaard.</p>
+  ${det('obj','Object',objB,true)}
+  ${det('bron','Bron en aansluiting',bronB,true)}
+  ${det('stelsel','Aardingsstelsel',stB,true)}
+  ${det('fixed','Vaste gegevens: inspecteur, instrument en norm',fixB,false)}
+  ${det('og','Opdrachtgever',`<div class="grid">${G('Naam opdrachtgever',I+'ogn',{cls:'full'})}${G('Adres',I+'oga',{cls:'full'})}${G('Naam contactpersoon',I+'ocp')}${G('Contactgegevens',I+'occ')}</div>`,false)}
+  ${det('soort','Soort inspectie en installatie',`<div class="grid">${G('Jaar van aanleg',I+'jaar',{mode:'numeric'})}<div class="fld"><span>Soort inspectie</span>${seg(I+'soort',[['nieuw','Nieuw'],['uitbreiding','Uitbreiding'],['periodiek','Periodiek']])}</div>${G('Doel van de elektrische installatie',I+'doel',{cls:'full'})}${area('Wederzijdse beïnvloeding (EMC, spanningsoverslag, verspreiding van brand)',I+'emc',2)}${area('Uitwendige invloeden (temperatuur, vocht, stof, corrosie, trilling, dieren, zon, bliksem, brand- en explosiegevaar)',I+'uitw',3)}</div>`,false)}
+  ${det('xi','Extra meetinstrumenten',xB,false)}
+  ${det('uitv','Uitvoering en documentatie',`<div class="grid">${G('Datum uitvoering inspectie',I+'datum',{ph:'dd-mm-jjjj'})}${G('Inspectiefrequentie',I+'freq',{unit:'jaar',mode:'numeric'})}${area('Omvang van de inspectie (welke delen wel of niet geïnspecteerd)',I+'omvang',2)}${area('Gebruikte documentatie (normen en fabrikantdocumenten)',I+'docs',2)}${G('Datum volgende inspectie',I+'volgende',{ph:'dd-mm-jjjj'})}</div>`,false)}`;
+}
+function viewMeten(){
+  const sw=`<section class="card">${seg('cur.mv',[['meet','Meetstaat per deel'],['ra','Aarding RA']],{rr:true})}</section>`;
+  if(S.cur.mv==='ra')return sw+viewAarding();
+  const si=S.cur.s,gi=S.cur.g,s=curSec(),g=curGrp(),p=`secs.${si}.`,q=`secs.${si}.groups.${gi}.`;
+  const vm=S.cur.vm==='on'?'on':'spl';
+  const ph3=g.ph==='3',any3=s.groups.some(x=>x.ph==='3');
+  const plist=SPL.map((t,i)=>chk(p+'spl.'+i,t,true)).join('');
+  const done=s.spl.filter(Boolean).length;
+  const splDone=done===SPL.length,splClosed=splDone&&!ui.splShow[si];
+  const delSec=ui.confirm==='sec'+si;const delGrp=ui.confirm==='grp'+gi;
+  const mA=q+'m.';
+  const rk=[['riso','L–PE'],['risoN','N–PE'],['risoLN','L–N']].concat(ph3?[['risoL12','L1–L2'],['risoL13','L1–L3'],['risoL23','L2–L3']]:[]);
+  const ph=(b,unit)=>ph3?[b,b+'2',b+'3'].map((k,i)=>one(mA+k,unit,'L'+(i+1))).join(''):one(mA+b,unit);
+  return `${sw}
+  <section class="card"><div class="vsw"><button class="${vm==='spl'?'on-spl':''}" data-act="vm" data-v="spl"><span class="vd spl"></span>Spanningsloze metingen</button><button class="${vm==='on'?'on-on':''}" data-act="vm" data-v="on">Spanningvoerende metingen<span class="vd on"></span></button></div></section>
+  ${vm==='spl'?`<section class="card"><h2>Spanningsloos maken<span class="sp"></span>${splClosed?'':infoBtn('spl')}</h2>
+   ${splClosed?`<div class="row"><span class="pill ok">✓ Alle ${SPL.length} stappen afgevinkt</span><button class="btn ghost sm" data-act="splshow">Toon lijst</button></div>`:`${infoPanel('spl')}<p class="hint" style="margin-bottom:6px">${done} van ${SPL.length} afgevinkt</p>${plist}${splDone?'<button class="btn ghost sm" data-act="splshow" style="margin-top:8px">Lijst inklappen</button>':''}`}</section>`:''}
+
+  <section class="card"><h2>Gegevens van deze groep</h2>
+   <div class="grid">${fld('Naam van de groep of het meetpunt',q+'name',{cls:'full',ph:'bijv. Airco 15 kW'})}
+    <div class="fld full"><span>Aansluiting van deze groep</span>${seg(q+'ph',[['1','1 fase'],['3','3 fasen']],{rr:true})}</div>
+    ${sel('Beveiliging',q+'ba',[['B','B-karakteristiek'],['C','C-karakteristiek'],['D','D-karakteristiek']])}${fld('Nominale stroom In',q+'in',{unit:'A',mode:'decimal'})}
+    ${fld('Spanning U0',q+'u0',{unit:'V',mode:'decimal'})}
+    ${sel('Soort groep voor ΔU',q+'dutype',[['licht','Verlichting (3 %)'],['overig','Overig (5 %)'],['pv','PV/omvormer (1 %)']])}
+    <div class="full">${chk(q+'rcd','Aardlekbeveiliging in deze groep',true)}</div>
+    ${g.rcd?`<div class="fld full"><span>Type aardlek (symbool op de schakelaar)</span>${typeSeg(q+'rtype')}</div>${g.rtype==='AC'?'<div class="warn full">Type AC is niet meer toegestaan. Noteer dit bij de gebreken als je het tegenkomt.</div>':''}${fld('IΔn',q+'idn',{unit:'mA',mode:'decimal'})}<div class="fld"><span>Uitvoering</span>${chk(q+'rS','Selectief (S)',true)}</div>`:''}
+   </div></section>
+
+  ${vm==='spl'?`<section class="card"><h2>Metingen spanningsloos</h2>
+   <div class="m"><div class="mh"><b>Alle spanningsloze metingen van deze groep</b></div><p class="hint">Kies “Niet van toepassing” of “Niet uitgevoerd” als je deze metingen voor de hele groep overslaat. Of kies per meting hieronder.</p>${stBar(q+'stBlock')}${g.stBlock?rsnBlock(q+'rsnBlock',g.stBlock):''}</div>
+   ${g.stBlock?'':`${meas('rloL','R low: onderbroken zijn van leidingen','rlo',one(mA+'rloL','Ω'),si,gi,'rloL')}
+   ${meas('rloP','R low: potentiaalvereffening en aarding','rlo',one(mA+'rloP','Ω'),si,gi,'rloP')}
+   <div class="m">${mh('Isolatieweerstand (Riso)','riso','riso')}${infoPanel('riso')}${stWrap(g,q,'riso',`${pinsBlock('riso',g)}
+    <div class="seg" style="margin-bottom:8px" role="radiogroup">${[['nieuw','Nieuw'],['bestaand','Bestaand'],['selv','SELV/PELV']].map(([v,t])=>`<label><input type="radio" name="rm${si}${gi}" data-pr="${mA}risoMode" value="${v}"${g.m.risoMode===v?' checked':''}><span>${t}</span></label>`).join('')}</div>
+    <div class="grid">${rk.map(([k,l])=>one(mA+k,'MΩ',l)).join('')}</div>${rk.map(([k])=>`<div class="res" data-res="${k}" data-s="${si}" data-g="${gi}"></div>`).join('')}`)}</div>
+   <div class="m">${mh('Scheiding van stroomketens','scheid','scheid')}${infoPanel('scheid')}${stWrap(g,q,'scheid',`${pinsBlock('scheid',g)}${seg(mA+'scheid',[['ok','Akkoord'],['nok','Niet akkoord']],{cls:'bad'})}<div class="res" data-res="scheid" data-s="${si}" data-g="${gi}"></div>`)}</div>`}
+  </section>`:''}
+
+  ${vm==='on'?`<section class="card"><h2>Onder spanning zetten</h2>
+   ${chk(p+'onder','Vergrendeling verwijderd en installatie weer onder spanning')}
+   ${any3?`<div class="m">${mh('Draaiveld','draai','draai')}${infoPanel('draai')}${stWrap(s,p,'draai',`${pinsBlock('draai',g)}${seg(p+'draai',[['rechtsom','Rechtsom (1-2-3)'],['linksom','Linksom (3-2-1)']],{cls:'bad'})}<div class="res" data-res="draai" data-s="${si}" data-g="${gi}"></div>`)}</div>`:'<p class="hint">Draaiveld verschijnt zodra een groep in dit deel op 3 fasen staat.</p>'}
+  </section>`:''}
+
+  ${vm==='on'?`<section class="card"><h2>Metingen onder spanning</h2>
+   ${meas('zi','Zi: fase-nul','zi','<div class="grid" style="grid-column:1/-1">'+ph('zi','Ω')+'</div>',si,gi)}
+   <div class="m">${mh('ΔU: spanningsverlies','du','du')}${infoPanel('du')}${stWrap(g,q,'du',`${pinsBlock('du',g)}
+    <div class="grid">${fld('Zref: Zi bij de hoofdaansluiting','zref',{unit:'Ω',mode:'decimal'})}${fld('Z: gemeten op deze locatie',mA+'duZ',{unit:'Ω',mode:'decimal'})}${fld('Percentage van de meter (optioneel)',mA+'duPct',{unit:'%',mode:'decimal'})}</div>
+    <div class="res" data-res="du" data-s="${si}" data-g="${gi}"></div>`)}</div>
+   ${meas('zs','Zs: fase-aarde','zs','<div class="grid" style="grid-column:1/-1">'+ph('zs','Ω')+'</div>',si,gi)}
+   ${g.rcd?`${meas('rcdi','RCD-I: aanspreekstroom','rcdi',one(mA+'rcdI','mA'),si,gi)}<div class="m">${mh('RCD-t: uitschakeltijd'+(g.rS?' (selectief)':''),'rcdt','rcdt')}${infoPanel('rcdt')}${stWrap(g,q,'rcdt',`${pinsBlock('rcdt',g)}
+    <p class="hint" style="margin-bottom:8px">${rcdHint(g)}</p>
+    <div class="grid">${one(mA+'rcdT','ms','Bij 1 × IΔn (normale meting)')}</div><div class="res" data-res="rcdt" data-s="${si}" data-g="${gi}"></div>
+    <div class="grid" style="margin-top:10px">${one(mA+'rcdT2','ms','Bij 2 × IΔn (optioneel)')}${one(mA+'rcdT5','ms','Bij 5 × IΔn (optioneel)')}</div>
+    <div class="res" data-res="rcdt2" data-s="${si}" data-g="${gi}"></div><div class="res" data-res="rcdt5" data-s="${si}" data-g="${gi}"></div>`)}</div>
+   <div class="m">${mh('Testknop','tk','tk')}${infoPanel('tk')}${stWrap(g,q,'tk',`${pinsBlock('tk',g)}${seg(mA+'tk',[['ok','Schakelt uit'],['second','Pas bij 2e keer'],['nok','Schakelt niet uit']],{cls:'bad'})}<div class="res" data-res="tk" data-s="${si}" data-g="${gi}"></div>`)}</div>`:'<p class="hint">Geen aardlek in deze groep: RCD-metingen vervallen.</p>'}
+  </section>`:''}
+
+  <section class="card"><h2>Afronden</h2>
+   <div class="m"><div class="mh"><b>Functionele beproeving</b>${infoBtn('func')}</div>${infoPanel('func')}${stWrap(s,p,'func',`${seg(p+'func',[['ok','Akkoord'],['nok','Niet akkoord']],{cls:'bad'})}<div class="res" data-res="func" data-s="${si}" data-g="${gi}"></div>`)}</div>
+   <h3>Deze groep of dit deel verwijderen</h3>
+   <div class="row">
+    ${s.groups.length>1?`<button class="btn ${delGrp?'dangerx':'danger'}" data-act="delgrp">${delGrp?'Zeker weten? Verwijder groep':'Groep verwijderen'}</button>`:''}
+    ${S.secs.length>1?`<button class="btn ${delSec?'dangerx':'danger'}" data-act="delsec">${delSec?'Zeker weten? Verwijder deel':'Deel verwijderen'}</button>`:''}
+   </div>
+   <div class="grid" style="margin-top:10px">${fld('Naam van dit deel',p+'name',{cls:'full'})}</div>
+  </section>`;
+}
+function viewVisueel(){
+  const si=S.cur.s,s=curSec();
+  const done=s.vis.filter(v=>v.a).length;
+  return `<section class="card"><h2>Visuele inspectie<span class="sp"></span>${infoBtn('vis')}</h2>${infoPanel('vis')}
+   <p class="hint" style="margin-bottom:8px">${esc(s.name)}: ${done} van ${VIS.length} beoordeeld.</p>
+   ${VIS.map((t,i)=>{const v=s.vis[i];const ref=`v:${si}:${i}`;const hasPh=S.photos.some(x=>x.ref===ref);return `<div class="vis"><p><span class="no">${i+1}.</span> ${esc(t)}</p>${seg(`secs.${si}.vis.${i}.a`,[['ja','Ja'],['nee','Nee'],['nvt','n.v.t.']],{rr:true,cls:'bad'})}${(v.a==='nee'||v.t)?`<label class="fld"><span>Toelichting</span><textarea id="vt-${si}-${i}" data-p="secs.${si}.vis.${i}.t" rows="2" placeholder="${esc(HINT)}">${esc(v.t)}</textarea></label>`:''}${(v.a==='nee'||hasPh)?photoBlock(ref):''}</div>`}).join('')}</section>`;
+}
+function viewAarding(){
+  const A=S.aarding;
+  const tabOpts=Object.keys(S.limits.ratab).map(k=>[k,k+(S.limits.ratab[k]===''?' (geen waarde)':' = '+fx(num(S.limits.ratab[k]))+' Ω')]);
+  const stc=`<section class="card"><h2>Status van deze meting</h2>${stBar('aarding.st')}${A.st?rsnBlock('aarding.rsn',A.st):''}</section>`;
+  if(A.st)return stc;
+  return stc+`<section class="card"><h2>Aardverspreidingsweerstand<span class="sp"></span>${dot('ra')}${infoBtn('ra')}</h2>${infoPanel('ra')}${pinsBlock('ra',{})}
+   <h3>Grenswaarde</h3>
+   ${seg('aarding.mode',[['aardlek','Met aardlek (50 V)'],['automaat','Met automaat (tabel)'],['eigen','Eigen waarde']],{rr:true})}
+   <div class="grid" style="margin-top:10px">
+    ${A.mode==='aardlek'?fld('IΔn van de aardlek','aarding.idn',{unit:'mA',mode:'decimal'}):''}
+    ${A.mode==='automaat'?sel('Automaat','aarding.tab',tabOpts):''}
+    ${A.mode==='eigen'?fld('Eigen grens','aarding.eigen',{unit:'Ω',mode:'decimal'}):''}
+   </div>
+   <div class="warn" style="margin-top:10px">Generator in TN-S met eigen aardpen: deze grens is dan niet de beschermingseis. Zs bepaalt of de beveiliging uitschakelt. Zie de i-knop.</div>
+  </section>
+  ${A.refs.map((r,i)=>`<section class="card"><h2>Referentie ${i+1}</h2><div class="grid">${fld('Rc waarde',`aarding.refs.${i}.rc`,{unit:'Ω',mode:'decimal'})}${fld('Rp waarde',`aarding.refs.${i}.rp`,{unit:'Ω',mode:'decimal'})}${fld('Afstand t.o.v. de aardpen',`aarding.refs.${i}.dist`,{unit:'m',mode:'decimal'})}${fld('Ra',`aarding.refs.${i}.ra`,{unit:'Ω',mode:'decimal'})}</div><div class="res" data-res="ra${i}"></div></section>`).join('')}`;
+}
+function viewFoto(){
+  const n=S.photos.length;
+  return `<section class="card"><h2>Fotobijlage</h2><p class="hint" style="margin-bottom:8px">Alle foto’s van de inspectie met het punt waar ze bij horen. Foto’s worden automatisch verkleind. Bij afkeur, in de visuele inspectie en bij de gegevens van het object voeg je foto’s toe op dat punt zelf.</p>${photoAdd('los')}</section>
+  <section class="card">${n?S.photos.map(p=>`<div class="gal">${PH[p.id]?`<img src="${PH[p.id]}" alt="Foto">`:'<img alt="Foto wordt geladen">'}<div class="fld"><span>${esc(refLabel(p.ref))}</span><input type="text" data-pcap="${p.id}" value="${esc(p.cap)}" placeholder="Bijschrift" autocomplete="off"><button class="lnk" data-act="delph" data-id="${p.id}">Foto verwijderen</button></div></div>`).join(''):'<p class="hint">Nog geen foto’s.</p>'}</section>`;
+}
+function viewGebreken(){
+  const open=pendingGebr().length;
+  return `<section class="card"><h2>Gebreken</h2><p class="hint" style="margin-bottom:8px">Punten die niet voldoen worden hier automatisch voorgesteld. Pas bevinding, maatregel en normverwijzing aan. De normverwijzing laat ik leeg: vul de juiste bepaling zelf in.</p>
+   <div class="row"><button class="btn" data-act="gfill">Aanvullen uit afkeur${open?' ('+open+')':''}</button><button class="btn ghost" data-act="gadd">+ Gebrek</button></div></section>
+  ${S.gebr.map((x,i)=>`<section class="card"><h2><span class="n">${i+1}</span>Gebrek<span class="sp"></span><button class="btn ${ui.confirm==='g'+i?'dangerx':'danger'} sm" data-act="gdel" data-i="${i}">${ui.confirm==='g'+i?'Zeker?':'Verwijder'}</button></h2>
+   <div class="grid"><div class="fld full"><span>Urgentie in het klantrapport</span>${seg('gebr.'+i+'.urg',[['urgent','Urgent'],['aanbevolen','Aanbevolen'],['informatief','Informatief']],{rr:true})}</div>${area('Bevinding','gebr.'+i+'.txt',3)}${area('Maatregel','gebr.'+i+'.maat',2)}${fld('Normverwijzing','gebr.'+i+'.norm',{cls:'full',ph:'bijv. NEN 1010 deel 6, bepaling invullen'})}</div>${photoBlock('g:'+x.id)}</section>`).join('')||'<p class="hint">Nog geen gebreken.</p>'}`;
+}
+/* ---------- niet van toepassing / niet uitgevoerd ---------- */
+const STOPT=[['','Gemeten'],['nvt','Niet van toepassing'],['nu','Niet uitgevoerd']];
+function stBar(path){return `<div class="stbar">${seg(path,STOPT,{rr:true})}</div>`}
+function rsnBlock(path,st){
+  const v=getP(path)||'';const need=st==='nu';
+  return `<label class="fld full${need&&!v?' need':''}"><span>${need?'Waarom niet uitgevoerd? (verplicht)':'Reden (optioneel)'}</span><textarea id="${pid(path)}" data-p="${path}" rows="2" placeholder="${esc(HINT)}">${esc(v)}</textarea></label>`;
+}
+function stWrap(g,q,key,inner){
+  const e=effSt(g,key);
+  return stBar(q+'stt.'+key)+(e.st?rsnBlock(q+'rsn.'+key,e.st):inner);
+}
+function stLine(r){return `${r.label}: ${r.status==='nu'?'NIET UITGEVOERD':'niet van toepassing'}${r.rsn?' – '+r.rsn:''}${(r.status==='nu'&&!r.rsn)?' (reden niet ingevuld)':''}`}
+
+/* ---------- klantrapport ---------- */
+const UITL={rloL:'Meet of de beschermingsleidingen goed doorverbonden zijn.',rloP:'Meet of de aarding en de vereffeningsverbindingen goed doorverbonden zijn.',riso:'Meet of de isolatie van de bekabeling goed is, zodat er geen stroom wegloopt.',scheid:'Controleert of stroomketens niet onderling verbonden zijn.',zi:'Meet hoe goed een kortsluiting wordt doorgelaten, zodat de beveiliging snel genoeg afschakelt.',zs:'Meet of een fout snel genoeg wordt uitgeschakeld.',du:'Meet hoeveel spanning onderweg in de kabel verloren gaat.',rcdi:'Meet bij welke lekstroom de aardlekschakelaar uitschakelt.',rcdt:'Meet hoe snel de aardlekschakelaar uitschakelt.',tk:'Controleert of de testknop van de aardlekschakelaar werkt.',draai:'Controleert of de drie fasen in de juiste volgorde zijn aangesloten.',func:'Controleert of schakelaars en bedieningen werken zoals bedoeld.',ra:'Meet hoe goed de aardelektrode contact maakt met de grond.'};
+const bk=k=>/^riso/.test(k)?'riso':/^rcdt/.test(k)?'rcdt':/^(ra|rh)/.test(k)?'ra':k;
+const KCSS=`.kr{font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:#111;background:#fff;padding:18px;border-radius:8px;text-align:left}
+.kr h1{font-size:22px;margin:0 0 4px;letter-spacing:0;text-transform:none;color:#111}
+.kr h2{font-size:16px;margin:22px 0 8px;border-bottom:2px solid #0b5d6b;padding-bottom:4px;color:#0b5d6b;display:block}
+.kr h3{font-size:14px;margin:14px 0 4px;color:#111;text-transform:none;letter-spacing:0}
+.kr p{margin:4px 0;color:#111;font-size:14px}
+.kr .co{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #ccc;padding-bottom:10px;margin-bottom:14px;font-size:12px;color:#444}
+.kr .verdict{font-size:18px;font-weight:600;padding:12px 14px;border-radius:8px;margin:12px 0}
+.kr .verdict.ok{background:#e1f3e8;color:#14532d}.kr .verdict.bad{background:#fde4e1;color:#7f1d1d}.kr .verdict.w{background:#fdf0cc;color:#6b4500}
+.kr .kv{display:grid;grid-template-columns:150px 1fr;gap:2px 10px;font-size:13px}
+.kr .kv b{color:#555;font-weight:500}
+.kr .sumr{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.kr .sumr span{border:1px solid #bbb;border-radius:999px;padding:3px 10px;font-size:12px;color:#111}
+.kr .gb{border-left:6px solid #888;background:#fafafa;padding:8px 12px;margin:10px 0;break-inside:avoid;color:#111}
+.kr .gb.urgent{border-color:#c62828}.kr .gb.aanbevolen{border-color:#ef8f00}.kr .gb.informatief{border-color:#2e7d32}
+.kr .tag{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;padding:1px 8px;border-radius:999px}
+.kr .tag.urgent{background:#c62828}.kr .tag.aanbevolen{background:#ef8f00}.kr .tag.informatief{background:#2e7d32}
+.kr table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 12px;background:#fff;color:#111}
+.kr th,.kr td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top;color:#111}
+.kr th{background:#f1f1f1}
+.kr tr{break-inside:avoid}
+.kr small{display:block;color:#666;font-size:11px}
+.kr .st.ok{color:#14532d;font-weight:600}.kr .st.bad{color:#b3261e;font-weight:700}.kr .st.w{color:#8a5a00;font-weight:600}.kr .st.n{color:#666}
+.kr figure{margin:8px 8px 8px 0;display:inline-block;vertical-align:top;break-inside:avoid;max-width:48%}
+.kr figure img{max-width:100%;max-height:260px;border:1px solid #ccc}
+.kr figcaption{font-size:11px;color:#555}
+.kr .sig img{width:220px;border-bottom:1px solid #333}
+@media print{@page{size:A4;margin:14mm}body{background:#fff}.kr{padding:0}.kr h2{break-after:avoid}}`;
+function ktSt(r){
+  if(r.status==='nu')return ['Niet uitgevoerd','w'];
+  if(r.status==='nvt')return ['Niet van toepassing','n'];
+  if(r.ok===true)return ['Voldoet','ok'];
+  if(r.ok===false)return ['Voldoet niet','bad'];
+  return ['Niet gemeten','n'];
+}
+function ktTable(rows){
+  const rs=rows.filter(r=>r.status||(r.val!==''&&r.val!=null)||r.ok!==null);
+  if(!rs.length)return '<p>Geen metingen ingevuld.</p>';
+  return `<table><tr><th>Meting</th><th>Gemeten</th><th>Grens</th><th>Uitslag</th></tr>${rs.map(r=>{
+    const [t,c]=ktSt(r);
+    const val=r.status?'–':esc((r.val===''?'–':r.val)+(r.unit?' '+r.unit:'')+(r.det?' ('+r.det+')':''));
+    const extra=r.status&&r.rsn?`<small>${esc(r.rsn)}</small>`:((r.status==='nu'&&!r.rsn)?'<small>reden niet ingevuld</small>':'');
+    return `<tr><td>${esc(r.label)}<small>${esc(UITL[bk(r.key)]||'')}</small></td><td>${val}</td><td>${esc(r.limT||'–')}</td><td class="st ${c}">${t}${extra}</td></tr>`}).join('')}</table>`;
+}
+const nl2br=t=>esc(t).replace(/\n/g,'<br>');
+function klantInner(){
+  const I=S.info,F=S.fixed,c=counts();
+  const cnt=n=>S.gebr.filter(x=>(x.urg||'aanbevolen')===n).length;
+  const nU=cnt('urgent'),nA=cnt('aanbevolen'),nI=cnt('informatief');
+  let verd,vc;
+  if(nU>0){verd=(S.oordeel==='niet'?'Uw installatie is niet goedgekeurd. ':'')+(nU===1?'Er is 1 punt dat hersteld moet worden.':'Er zijn '+nU+' punten die hersteld moeten worden.');vc='bad'}
+  else if(S.oordeel==='niet'){verd='Uw installatie is niet goedgekeurd.';vc='bad'}
+  else if(S.oordeel==='goed'){verd='Op basis van de uitgevoerde controle en metingen is uw installatie goedgekeurd.'+(c.nu?' Let op: een deel van de metingen is niet uitgevoerd, dit oordeel is daardoor beperkt.':'');vc=c.nu?'w':'ok'}
+  else{verd='Het eindoordeel is nog niet vastgesteld.';vc='w'}
+  const kv=(k,v)=>v?`<b>${esc(k)}</b><span>${esc(v)}</span>`:'';
+  const shown=new Set();
+  const gb=S.gebr.map(x=>{
+    const u=x.urg||'aanbevolen';
+    const ph=S.photos.filter(p=>p.ref==='g:'+x.id||(x.src&&p.ref===x.src));ph.forEach(p=>shown.add(p.id));
+    return `<div class="gb ${u}"><span class="tag ${u}">${u}</span><p>${nl2br(x.txt||'')}</p>${x.maat?`<p><b>Maatregel:</b> ${nl2br(x.maat)}</p>`:''}${x.norm?`<p><b>Norm:</b> ${esc(x.norm)}</p>`:''}${ph.map(p=>PH[p.id]?`<figure><img src="${PH[p.id]}" alt="Foto">${p.cap?`<figcaption>${esc(p.cap)}</figcaption>`:''}</figure>`:'').join('')}</div>`}).join('');
+  const bij=S.secs.map(s=>{
+    const vNee=s.vis.filter(v=>v.a==='nee').length,vJa=s.vis.filter(v=>v.a==='ja').length;
+    return `<h3>${esc(s.name)}</h3><p>Visuele inspectie: ${vJa} punten in orde, ${vNee} niet in orde, ${s.vis.filter(v=>v.a==='nvt').length} niet van toepassing, ${s.vis.filter(v=>!v.a).length} niet beoordeeld.</p>`+
+      s.groups.map(g=>`<p><b>${esc(g.name)}</b> (${g.ph==='3'?'3 fasen':'1 fase'}, ${esc(g.ba)}${fx(num(g.in),0)} A)</p>${ktTable(rowsFor(s,g))}`).join('')+
+      (secRows(s).some(r=>r.status||r.ok!==null)?`<p><b>Overige controles</b></p>${ktTable(secRows(s))}`:'');
+  }).join('');
+  const ar=aardRows().filter(r=>r.status||r.ok!==null||(r.val&&r.val!=='– / –'));
+  const foto=S.photos.filter(p=>!shown.has(p.id)).map(p=>PH[p.id]?`<figure><img src="${PH[p.id]}" alt="Foto"><figcaption>${esc(refLabel(p.ref))}${p.cap?' – '+esc(p.cap):''}</figcaption></figure>`:'').join('');
+  return `<div class="co"><div><b>${esc(F.bedrijf||'')}</b><br>${esc(F.adres||'')}<br>${esc(F.contact||'')}</div><div style="text-align:right">Inspectie: ${esc(I.datum||'')}<br>Inspecteur: ${esc(I.teken||F.insp||'')}</div></div>
+  <h1>Inspectierapport elektrische installatie</h1>
+  <div class="kv">${kv('Object',I.object)}${kv('Adres',I.adres)}${kv('Opdrachtgever',I.ogn)}${kv('Bron',bronText())}${kv('Aardingsstelsel',I.stelsel)}</div>
+  <div class="verdict ${vc}">${esc(verd)}</div>
+  <div class="sumr"><span>Urgent: ${nU}</span><span>Aanbevolen: ${nA}</span><span>Informatief: ${nI}</span>${c.nu?`<span>${c.nu} metingen niet uitgevoerd</span>`:''}<span>${c.ok} punten voldoen</span></div>
+  ${S.afw.con?`<h2>Conclusie</h2><p>${nl2br(S.afw.con)}</p>`:''}
+  <h2>Gebreken en aandachtspunten</h2>${gb||'<p>Er zijn geen gebreken vastgelegd.</p>'}
+  ${S.afw.aan?`<h2>Aanbevelingen</h2><p>${nl2br(S.afw.aan)}</p>`:''}
+  <h2>Bijlage A: meetwaarden</h2><p>Per meting staat in gewone woorden wat er gemeten wordt. De cijfers zijn de gemeten waarden met de bijbehorende grens.</p>${bij}${ar.length?`<h3>Aarding</h3>${ktTable(ar)}`:''}
+  <h2>Bijlage B: foto’s</h2>${foto||'<p>Geen foto’s.</p>'}
+  <h2>Over deze inspectie</h2><div class="kv">${kv('Toegepaste norm',F.norm)}${kv('Meetinstrument',F.instr)}${kv('Serienummer',F.serie)}${kv('Kalibratiedatum',F.kal)}${kv('Omvang',I.omvang)}${kv('Documentatie',I.docs)}</div>
+  <h2>Ondertekening</h2><div class="sig"><p>${esc(I.teken||F.insp||'')} ${I.tekenDatum?'· '+esc(I.tekenDatum):''}</p>${S.sig?`<img src="${S.sig}" alt="Handtekening">`:''}</div>`;
+}
+function dataJSON(){
+  return JSON.stringify({app:'meethulp',v:2,S:S,photos:S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))}).replace(/</g,'\\u003c');
+}
+function klantHTML(){
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspectierapport ${esc(S.info.object||'')}</title><style>body{margin:0;background:#fff}.kr{max-width:820px;margin:0 auto}${KCSS}</style></head><body><div class="kr">${klantInner()}</div><script type="application/json" id="meethulp-data">${dataJSON()}<\/script></body></html>`;
+}
+function parseData(txt){
+  let j=String(txt).trim();
+  const m=j.match(/<script type="application\/json" id="meethulp-data">([\s\S]*?)<\/script>/);
+  if(m)j=m[1];
+  const o=JSON.parse(j);
+  if(!o||o.app!=='meethulp'||!o.S)throw new Error('geen meethulp-bestand');
+  return o;
+}
+function applyData(o){
+  S.photos.forEach(p=>dropPhotoStore(p.id));
+  S=merge(defaults(),o.S);normalize();S.cur.tab='start';
+  (o.photos||[]).forEach(p=>{if(p.d){PH[p.id]=p.d;savePhoto(p.id)}});
+  touch();render();
+}
+function fileName(){return 'klantrapport-'+((S.info.object||'inspectie').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||'inspectie')+'-'+new Date().toISOString().slice(0,10)+'.html'}
+function fileCard(){
+  return `<section class="card"><h2>Bewaren</h2><p class="hint" style="margin-bottom:8px">Eén bestand per klant: het klantrapport met alle meetgegevens en foto’s erin. Je kunt het later weer openen om te corrigeren. Het bestand bevat ook alles wat je intern hebt ingevuld.</p><div class="row"><button class="btn" data-act="pdf">Exporteer als PDF</button><button class="btn" data-act="savefile">Opslaan als bestand</button><button class="btn ghost" data-act="copydata">Kopieer back-uptekst</button></div><p class="hint" id="fmsg" style="margin-top:6px"></p></section>`;
+}
+function openCard(){
+  const po=ui.pendingOpen;
+  return `<section class="card"><h2>Openen</h2>${po?`<div class="warn">Bestand “${esc(po.name)}” openen? De huidige inspectie in de app wordt vervangen. Bewaar die eerst als je hem nog nodig hebt.</div><div class="row" style="margin-top:8px"><button class="btn dangerx" data-act="openok">Ja, openen</button><button class="btn ghost" data-act="opencancel">Annuleren</button></div>`:`<label class="btn ghost">Bestand kiezen…<input class="vh" type="file" accept=".html,.htm,.json,text/html,application/json" data-open="1"></label>`}
+  <details style="margin-top:10px"><summary>Openen vanuit tekst</summary><label class="fld" style="margin-top:8px"><span>Plak hier de back-uptekst</span><textarea id="pastedata" rows="3" placeholder="Plak de gekopieerde back-uptekst"></textarea></label><button class="btn ghost" data-act="openpaste" style="margin-top:8px">Openen vanuit tekst</button></details></section>`;
+}
+function viewKlant(){
+  return `${fileCard()}${openCard()}<p class="hint">Voorbeeld van het klantrapport. Controleer de uitleg per meting voordat je het naar een klant stuurt. Met “Exporteer als PDF” opent het afdrukvenster: kies daar “Opslaan als PDF” (iPhone: deelknop, daarna “Bewaar in Bestanden”).</p><style>${KCSS}</style><div class="kr">${klantInner()}</div>`;
+}
+
+function bronText(){
+  const B=S.info.bron;
+  if(B.type==='net')return ['Netaansluiting',B.nb,B.fasen?B.fasen+' fase'+(B.fasen==='3'?'n':''):'',B.hoofd?'hoofdzekering '+B.hoofd+' A':''].filter(Boolean).join(', ');
+  if(B.type==='gen')return ['Generatorset',B.kva?B.kva+' kVA':'',B.spanning?B.spanning+' V':'',B.fasen?B.fasen+' fase'+(B.fasen==='3'?'n':''):'','eigen aarding: '+(B.eigen?'ja':'nee')].filter(Boolean).join(', ');
+  if(B.type==='anders')return ['Anders',B.nb,B.fasen?B.fasen+' fase'+(B.fasen==='3'?'n':''):''].filter(Boolean).join(', ');
+  return '';
+}
+function reportText(){
+  const I=S.info,F=S.fixed,L=[];
+  const hd=(t)=>{L.push('');L.push(t.toUpperCase())};
+  const kv=(k,v)=>{if(v)L.push(k+': '+v)};
+  L.push('INSPECTIERAPPORT');
+  L.push('EINDOORDEEL: '+(({goed:'Goedgekeurd',niet:'Niet goedgekeurd'})[S.oordeel]||'nog niet vastgesteld'));
+  if(S.afw.con)L.push('Conclusie: '+S.afw.con);
+  L.push('Gebreken: '+S.gebr.length);
+  {const c0=counts();if(c0.nu)L.push(`Niet uitgevoerd: ${c0.nu} metingen (zie de regels hieronder)`)}
+  hd('Object');kv('Object',I.object);kv('Adres',I.adres);kv('Contactpersoon',[I.cp,I.cpc].filter(Boolean).join(', '));
+  hd('Bron en aardingsstelsel');kv('Bron',bronText());kv('Aardingsstelsel',I.stelsel);
+  hd('Opdrachtgever');kv('Naam',I.ogn);kv('Adres',I.oga);kv('Contactpersoon',[I.ocp,I.occ].filter(Boolean).join(', '));
+  hd('Inspecteur en meetinstrument');kv('Inspecteur',F.insp);kv('Bedrijf',F.bedrijf);kv('Adres',F.adres);kv('Contact',F.contact);kv('Meetinstrument',F.instr);kv('Serienummer',F.serie);kv('Kalibratiedatum',F.kal);
+  S.instr.forEach((x,i)=>{if(x.o||x.t||x.k)L.push(`Extra instrument ${i+1}: ${x.o} | ${x.t} | kalibratie ${x.k}`)});
+  const ls=Object.keys(PINLBL).filter(k=>S.leadsel&&S.leadsel[k]);
+  if(ls.length){hd('Aansluiting meetinstrument');ls.forEach(k=>L.push(`${PINLBL[k]}: ${S.leadsel[k]}`))}
+  hd('Toegepaste norm');L.push(F.norm||'–');
+  hd('Soort inspectie');kv('Jaar van aanleg',I.jaar);kv('Soort',I.soort);kv('Doel installatie',I.doel);kv('EMC en beïnvloeding',I.emc);kv('Uitwendige invloeden',I.uitw);
+  hd('Uitvoering');kv('Datum',I.datum);kv('Omvang',I.omvang);kv('Documentatie',I.docs);kv('Inspectiefrequentie (jaar)',I.freq);kv('Volgende inspectie',I.volgende);
+  S.secs.forEach(s=>{
+    hd('Installatiedeel: '+s.name);
+    L.push('Spanningsloos maken: '+s.spl.filter(Boolean).length+' van '+SPL.length+' stappen afgevinkt');
+    s.groups.forEach(g=>{
+      L.push('');L.push(`Groep ${g.name} (${g.ph==='3'?'3 fasen':'1 fase'}, ${g.ba}${fx(num(g.in),0)} A, ${fx(num(g.u0),0)} V${g.rcd?`, aardlek type ${g.rtype}${g.rS?' selectief':''} ${fx(num(g.idn),0)} mA`:''})`);
+      rowsFor(s,g).forEach(r=>{if(r.status){L.push('  '+stLine(r));return}if(r.val!==''&&r.val!=null||r.ok!==null)L.push(`  ${r.label}: ${r.val===''?'–':r.val} ${r.unit}${r.det?' ('+r.det+')':''} [${r.ok===null?'niet gemeten':r.ok?'voldoet':'VOLDOET NIET'}; grens ${r.limT}]`)});
+    });
+    secRows(s).forEach(r=>{if(r.status){L.push(stLine(r));return}if(r.ok!==null)L.push(`${r.label}: ${r.val} [${r.ok?'voldoet':'VOLDOET NIET'}]`)});
+    const nee=s.vis.map((v,i)=>({v,i})).filter(x=>x.v.a==='nee');
+    L.push(`Visuele inspectie: ${s.vis.filter(v=>v.a==='ja').length} ja, ${nee.length} nee, ${s.vis.filter(v=>v.a==='nvt').length} n.v.t., ${s.vis.filter(v=>!v.a).length} niet beoordeeld`);
+    nee.forEach(x=>L.push(`  Nee: ${VIS[x.i]}${x.v.t?' | '+x.v.t:''}`));
+  });
+  const ar=aardRows().filter(r=>r.status||r.ok!==null||(r.val&&r.val!=='– / –'));
+  if(ar.length){hd('Aardverspreidingsweerstand');ar.forEach(r=>r.status?L.push(stLine(r)):L.push(`${r.label}: ${r.val} ${r.unit} [${r.ok===null?'niet beoordeeld':r.ok?'voldoet':'VOLDOET NIET'}; grens ${r.limT}]`))}
+  hd('Gebreken');
+  if(S.gebr.length)S.gebr.forEach((x,i)=>{L.push(`${i+1}. Urgentie: ${x.urg||'aanbevolen'}`);L.push(`   Bevinding: ${x.txt||'–'}`);L.push(`   Maatregel: ${x.maat||'–'}`);L.push(`   Normverwijzing: ${x.norm||'–'}`)});
+  else L.push('–');
+  if(S.afw.afw){L.push('Overige afwijkingen (eerder ingevuld): '+S.afw.afw)}
+  hd('Aanbevelingen');L.push(S.afw.aan||'–');
+  hd('Fotobijlage');L.push(S.photos.length?`${S.photos.length} foto’s (zie de HTML-export met foto’s)`:'Geen foto’s');
+  hd('Ondertekening');kv('Inspecteur',I.teken||F.insp);kv('Datum',I.tekenDatum);L.push(S.sig?'Handtekening: gezet':'Handtekening: niet gezet');
+  return L.join('\n');
+}
+function reportHTML(){
+  const ph=S.photos.map(p=>`<figure><img src="${PH[p.id]||''}" style="max-width:100%;width:420px"><figcaption>${esc(refLabel(p.ref))}${p.cap?' – '+esc(p.cap):''}</figcaption></figure>`).join('');
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Meetrapport</title><style>body{font:14px/1.5 system-ui,sans-serif;max-width:800px;margin:20px auto;padding:0 12px}pre{white-space:pre-wrap;font:12px/1.5 ui-monospace,monospace}figure{margin:12px 0;break-inside:avoid}</style></head><body><pre>${esc(reportText())}</pre>${S.sig?`<h3>Handtekening</h3><img src="${S.sig}" style="width:300px;border:1px solid #ccc">`:''}<h2>Fotobijlage</h2>${ph||'<p>Geen foto’s.</p>'}</body></html>`;
+}
+function viewRapport(){
+  const c=counts();
+  const sug=c.bad>0?`Voorstel op basis van de metingen: ${c.bad} punt(en) voldoen niet. De keuze is aan jou.`:(c.open>0?`Nog ${c.open} punten open. De keuze is aan jou.`:'Er is geen afkeur gevonden. De keuze is aan jou.');
+  const lim=c.nu?`<div class="warn" style="margin-bottom:8px">${c.nu} metingen zijn niet uitgevoerd. De installatie is op die punten niet beoordeeld, dus “goedgekeurd” geldt alleen voor het deel dat wel is gemeten. Overweeg dat in de conclusie te noteren. De keuze is aan jou.${c.nr?` Bij ${c.nr} ontbreekt nog de reden.`:''}<div style="margin-top:8px"><button class="btn ghost sm" data-act="addlim">Zin toevoegen aan conclusie</button></div></div>`:'';
+  return `<section class="card"><h2>Overzicht</h2><div class="sum">${sumHTML()}</div></section>
+  <section class="card"><h2>Eindoordeel</h2>${lim}<p class="hint" style="margin-bottom:8px">${esc(sug)} Gebreken in de lijst: ${S.gebr.length}.</p>${seg('oordeel',[['goed','Goedgekeurd'],['niet','Niet goedgekeurd']],{rr:false})}
+   <div class="grid" style="margin-top:10px">${area('Conclusie','afw.con',3)}${area('Aanbevelingen','afw.aan',3)}</div></section>
+  <section class="card"><h2>Ondertekening</h2><div class="grid">${fld('Naam ondertekenaar','info.teken',{ph:S.fixed.insp})}${fld('Datum','info.tekenDatum',{ph:'dd-mm-jjjj'})}</div>
+   <h3>Handtekening</h3><canvas class="sig" id="sig" width="600" height="220" aria-label="Handtekening"></canvas><button class="lnk" data-act="sigclear">Handtekening wissen</button></section>
+  <section class="card"><h2>Rapport</h2><pre class="rep" id="rep"></pre>
+   <div class="row" style="margin-top:10px"><button class="btn" data-act="copy">Kopieer tekst</button><button class="btn ghost dlb" data-act="dl" hidden>Bewaar als .txt</button><button class="btn ghost dlb" data-act="dlh" hidden>Bewaar als HTML met foto’s</button><button class="btn" data-act="pdf">Klantrapport als PDF</button></div><p class="hint" id="rmsg" style="margin-top:6px"></p></section>
+  <section class="card"><h2>Nieuwe inspectie</h2><p class="hint" style="margin-bottom:8px">Wist object, metingen, visuele punten, gebreken en foto’s. Vaste gegevens en grenswaarden blijven staan.</p>${wipeBlock()}</section>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const y=window.scrollY;
+  $('#chips').innerHTML=chipsHTML();fixChips();
+  const v={start:viewStart,gegevens:viewGegevens,meten:viewMeten,visueel:viewVisueel,foto:viewFoto,gebreken:viewGebreken,rapport:viewRapport,klant:viewKlant}[S.cur.tab]||viewStart;
+  $('#main').innerHTML=(ui.msg?`<div class="warn">${esc(ui.msg)}</div>`:'')+v();
+  ui.msg='';
+  $('#nav').innerHTML=navHTML();
+  updateCalc();
+  if(S.cur.tab==='rapport'){initSig();if(dlOk)showDl()}
+  window.scrollTo(0,y);
+}
+function resHTML(r,ref,lbl){
+  if(!r)return '';
+  return `${lbl?`<div class="cx"><b>${esc(r.label)}</b></div>`:''}<div class="rl">${pill(r.ok)}<span>Grens: ${esc(r.limT||'–')}</span></div>${r.det?`<div class="cx">${esc(r.det)}</div>`:''}${r.calc?`<div class="cx">${esc(r.calc)}</div>`:''}${(r.ok===false&&ref)?photoBlock(ref):''}`;
+}
+function updateCalc(){
+  const ch=$('#chips');if(ch){const html=chipsHTML();if(ch.innerHTML!==html&&!(document.activeElement&&ch.contains(document.activeElement)&&document.activeElement.tagName==='INPUT')){ch.innerHTML=html;fixChips()}}
+  $('#nav').innerHTML=navHTML();
+  document.querySelectorAll('[data-res]').forEach(el=>{
+    const k=el.dataset.res;let r,ref;
+    if(/^ra\d/.test(k)){
+      r=aardRows().find(x=>x.key===k);ref='ra:'+k;
+      const rh=aardRows().find(x=>x.key==='rh'+k.slice(2));
+      el.innerHTML=resHTML(r,ref)+(rh&&rh.ok!==null?`<div class="rl">${pill(rh.ok)}<span>Hulpelektroden (Rc/Rp): ${esc(rh.limT)}</span></div>`:'');
+      return;
+    }
+    const si=+el.dataset.s,s=S.secs[si],g=s&&s.groups[+el.dataset.g];if(!s)return;
+    if(k==='draai'||k==='func'){r=secRows(s).find(x=>x.key===k);ref='s:'+si+':'+k}
+    else{r=g?rowsFor(s,g).find(x=>x.key===k):null;ref='m:'+si+':'+el.dataset.g+':'+k}
+    el.innerHTML=resHTML(r,ref,/^riso/.test(k));
+  });
+  const zl=$('#'+pid(`secs.${S.cur.s}.groups.${S.cur.g}.m.duZ`));if(zl&&S.cur.tab==='meten'){const r=rowsFor(curSec(),curGrp()).find(x=>x.key==='zi');zl.placeholder=r&&r.val!==''?r.val+' (uit Zi)':'';const zf=$('#f-zref');if(zf){const zi=zrefInfo(curGrp());zf.placeholder=S.zref===''?(zi.src.indexOf('overgenomen')===0?fx(zi.v,3)+' (automatisch)':'vul één keer in'):''}}
+  const rc=$('#rlcalc');if(rc){const L=num(S.limits.L),A=num(S.limits.A),rho=num(S.limits.rho);rc.textContent=(L>0&&A>0&&rho>0)?`R = ${fx(rho,4)} × ${fx(L)} / ${fx(A)} = ${fx(rho*L/A,3)} Ω`:'Vul lengte en doorsnede in voor een rekenvoorbeeld.'}
+  const rep=$('#rep');if(rep)rep.textContent=reportText();
+  document.querySelectorAll('.sum').forEach(sm=>{sm.innerHTML=sumHTML()});
+}
+function initSig(){
+  const c=$('#sig');if(!c)return;
+  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+  if(S.sig){const im=new Image();im.onload=()=>ctx.drawImage(im,0,0,c.width,c.height);im.src=S.sig}
+  ctx.strokeStyle='#111';ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';
+  let drawing=false,last=null;
+  const pos=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  c.onpointerdown=e=>{drawing=true;last=pos(e);try{c.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault()};
+  c.onpointermove=e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(last[0],last[1]);ctx.lineTo(p[0],p[1]);ctx.stroke();last=p;e.preventDefault()};
+  const end=()=>{if(!drawing)return;drawing=false;S.sig=c.toDataURL('image/png');touch()};
+  c.onpointerup=end;c.onpointercancel=end;
+}
+
+/* ---------- opslag ---------- */
+let dbDoc=null,saveTimer=null,saving=false,pending=false;
+const setSave=t=>{const e=$('#save');if(e)e.textContent=t};
+function touch(){S.t=Date.now();setSave('wijzigingen…');clearTimeout(saveTimer);saveTimer=setTimeout(persist,700)}
+async function persist(){
+  const json=JSON.stringify(S);
+  let local=false;
+  if(idb){try{await idbPut('kv','state',{json,t:S.t});local=true}catch(e){}}
+  if(!local){try{localStorage.setItem(KEY,json);local=true}catch(e){}}
+  if(!dbDoc){setSave(local?'bewaard op dit toestel':'NIET bewaard: opslag vol of geblokkeerd');return}
+  if(saving){pending=true;return}
+  saving=true;
+  try{await dbDoc.set({json,t:S.t});setSave('opgeslagen')}
+  catch(e){setSave(local?'bewaard op dit toestel':'NIET bewaard')}
+  saving=false;
+  if(pending){pending=false;persist()}
+}
+async function load(){
+  try{idb=await idbOpen()}catch(e){idb=null}
+  let found=false,migrated=false;
+  if(idb){try{const r=await idbGet('kv','state');if(r&&r.json){S=merge(defaults(),JSON.parse(r.json));found=true}}catch(e){}}
+  if(!found){try{const raw=localStorage.getItem(KEY);if(raw){S=merge(defaults(),JSON.parse(raw));migrated=true}}catch(e){}}
+  normalize();S.cur.tab='start';
+  await loadPhotos();render();
+  setSave(idb?'bewaard op dit toestel':'bewaard (beperkte opslag)');
+  if(migrated&&idb){try{await idbPut('kv','state',{json:JSON.stringify(S),t:S.t||0});localStorage.removeItem(KEY)}catch(e){}}
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+  try{
+    if(!window.claude||!window.claude.use)return;
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    dbCol=db.collection('data/users/'+id);
+    dbDoc=dbCol.doc('meethulp');
+    const snap=await dbDoc.get();
+    if(snap.exists){
+      const d=snap.data();
+      if(d&&d.json&&(d.t||0)>(S.t||0)){const tb=S.cur.tab;S=merge(defaults(),JSON.parse(d.json));normalize();S.cur.tab=tb;render()}
+    }
+    unsynced.splice(0).forEach(pid=>{if(PH[pid]&&S.photos.some(p=>p.id===pid))dbCol.doc('ph-'+pid).set({d:PH[pid]}).catch(()=>{})});
+    if(await loadPhotos())render();
+    setSave('opgeslagen');
+    if((S.t||0)>0)persist();
+  }catch(e){dbDoc=null;dbCol=null;setSave(idb?'bewaard op dit toestel':'bewaard (beperkte opslag)')}
+}
+
+/* ---------- gebeurtenissen ---------- */
+document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.tagName==='DETAILS'&&d.dataset.k)ui.det[d.dataset.k]=d.open},true);
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.note){S.notes[t.dataset.note]=t.value;touch();return}
+  if(t.dataset.pcap){const p=S.photos.find(x=>x.id===t.dataset.pcap);if(p){p.cap=t.value;touch()}return}
+  if(t.dataset.p!==undefined){setP(t.dataset.p,t.value);touch();updateCalc();if(t.dataset.rr)render()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.open!==undefined){
+    const f=(t.files||[])[0];t.value='';if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{try{ui.pendingOpen={name:f.name,o:parseData(rd.result)}}catch(err){ui.pendingOpen=null;ui.msg='Dit bestand is geen meethulp-bestand. Er is niets veranderd.'}render()};
+    rd.onerror=()=>{ui.msg='Bestand lezen mislukt. Er is niets veranderd.';render()};
+    rd.readAsText(f);return;
+  }
+  if(t.dataset.photo!==undefined){
+    const files=Array.from(t.files||[]);const ref=t.dataset.photo;t.value='';
+    (async()=>{for(const f of files)await addPhoto(ref,f)})();return;
+  }
+  if(t.dataset.pb!==undefined){setP(t.dataset.pb,t.checked);touch();if(t.dataset.rr)render();else updateCalc()}
+  else if(t.dataset.pr!==undefined&&t.checked){setP(t.dataset.pr,t.value);touch();if(t.dataset.rr)render();else updateCalc()}
+});
+async function saveFile(name,data,msgEl){
+  const say=t=>{if(msgEl)msgEl.textContent=t};
+  try{
+    if(window.claude&&window.claude.use){
+      const d=await window.claude.use('downloads');
+      if(d){await d.save({filename:name,data});say('Bewaard.');return}
+    }
+    const type=/\.html$/.test(name)?'text/html':'text/plain';
+    const blob=new Blob([data],{type:type+';charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),15000);
+    say('Bewaard (kijk in je downloads of Bestanden).');
+  }catch(err){say((err&&err.code==='declined')?'Niet bewaard.':'Bewaren lukt hier niet. Gebruik Kopieer tekst.')}
+}
+/* PDF: het klantrapport wordt in een eigen laag gezet en afgedrukt; kies "Opslaan als PDF" */
+function printReport(){
+  let r=$('#printroot');
+  if(!r){r=document.createElement('div');r.id='printroot';document.body.appendChild(r)}
+  r.innerHTML=`<style>${KCSS}</style><div class="kr">${klantInner()}</div>`;
+  const old=document.title;
+  document.title=fileName().replace(/\.html$/,'');
+  const done=()=>{document.title=old;r.innerHTML='';window.removeEventListener('afterprint',done)};
+  window.addEventListener('afterprint',done);
+  setTimeout(()=>{try{window.print()}catch(e){done();ui.msg='Afdrukken wordt hier niet ondersteund.';render()}},350);
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act;
+  if(a!=='delsec'&&a!=='delgrp'&&a!=='wipe'&&a!=='gdel')ui.confirm='';
+  if(a==='tab'){S.cur.tab=b.dataset.k;if(b.dataset.k==='gebreken')fillGebr();touch();render();window.scrollTo(0,0)}
+  else if(a==='sec'){S.cur.s=+b.dataset.i;S.cur.g=0;ui.confirm='';touch();render()}
+  else if(a==='grp'){S.cur.g=+b.dataset.i;ui.confirm='';touch();render()}
+  else if(a==='addform'){ui.addOpen=!ui.addOpen;render()}
+  else if(a==='addsec'){
+    let n=b.dataset.name;const inp=$('#newsec');
+    if(!n){n=(inp&&inp.value.trim())||('Deel '+(S.secs.length+1))}
+    else if(n==='Paddenstoel tent'){n='Paddenstoel tent '+(S.secs.filter(x=>/^Paddenstoel tent/.test(x.name)).length+1)}
+    S.secs.push(newSec(n,bronPh()));S.cur.s=S.secs.length-1;S.cur.g=0;ui.addOpen=false;touch();render();window.scrollTo(0,0)}
+  else if(a==='addgrp'){const s=curSec();const last=s.groups[s.groups.length-1];s.groups.push(newGrp('Groep '+(s.groups.length+1),last?last.ph:bronPh()));S.cur.g=s.groups.length-1;touch();render()}
+  else if(a==='info'){ui.open[b.dataset.k]=!ui.open[b.dataset.k];render()}
+  else if(a==='resetnote'){delete S.notes[b.dataset.k];touch();render()}
+  else if(a==='delgrp'){
+    const key='grp'+S.cur.g;
+    if(ui.confirm!==key){ui.confirm=key;render();return}
+    const s=curSec();s.groups.splice(S.cur.g,1);S.cur.g=0;ui.confirm='';touch();render()}
+  else if(a==='delsec'){
+    const key='sec'+S.cur.s;
+    if(ui.confirm!==key){ui.confirm=key;render();return}
+    S.secs.splice(S.cur.s,1);S.cur.s=0;S.cur.g=0;ui.confirm='';touch();render()}
+  else if(a==='wipe'){
+    if(ui.confirm!=='wipe'){ui.confirm='wipe';render();return}
+    S.photos.forEach(p=>dropPhotoStore(p.id));
+    const keep={limits:S.limits,notes:S.notes,fixed:S.fixed,leads:S.leads,leadsel:S.leadsel,instr:S.instr};
+    S=defaults();Object.assign(S,keep);S.cur.tab='start';ui.confirm='';touch();render();window.scrollTo(0,0)}
+  else if(a==='vm'){S.cur.vm=b.dataset.v;touch();render()}
+  else if(a==='splshow'){ui.splShow[S.cur.s]=!ui.splShow[S.cur.s];render()}
+  else if(a==='delph'){
+    const id=b.dataset.id;S.photos=S.photos.filter(p=>p.id!==id);dropPhotoStore(id);touch();render()}
+  else if(a==='gfill'){const n=fillGebr();ui.msg=n?`${n} gebrek(en) toegevoegd.`:'Er zijn geen nieuwe afkeurpunten om toe te voegen.';render()}
+  else if(a==='gadd'){S.gebr.push({id:gid(),src:'',txt:'',maat:'',norm:'',urg:'aanbevolen'});touch();render()}
+  else if(a==='gdel'){
+    const i=+b.dataset.i,key='g'+i;
+    if(ui.confirm!==key){ui.confirm=key;render();return}
+    const x=S.gebr[i];if(x){if(x.src)S.gdis.push(x.src);S.photos.filter(p=>p.ref==='g:'+x.id).forEach(p=>dropPhotoStore(p.id));S.photos=S.photos.filter(p=>p.ref!=='g:'+x.id);S.gebr.splice(i,1)}
+    ui.confirm='';touch();render()}
+  else if(a==='addlim'){const z=`Let op: ${counts().nu} metingen zijn niet uitgevoerd; de installatie is op die punten niet beoordeeld.`;if(!(S.afw.con||'').includes('niet uitgevoerd'))S.afw.con=((S.afw.con||'')+(S.afw.con?'\n':'')+z);touch();render()}
+  else if(a==='pdf'){printReport()}
+  else if(a==='install'){const ev=ui.installEvt;if(ev){ev.prompt();try{await ev.userChoice}catch(x){}ui.installEvt=null;render()}}
+  else if(a==='savefile'){saveFile(fileName(),klantHTML(),$('#fmsg'))}
+  else if(a==='copydata'){const m=$('#fmsg');try{await navigator.clipboard.writeText(dataJSON());if(m)m.textContent='Back-uptekst gekopieerd. Plak hem ergens veilig (notitie, mail aan jezelf).'}catch(err){const ta=$('#pastedata');if(m)m.textContent='Kopiëren lukte niet hier.'}}
+  else if(a==='openpaste'){const ta=$('#pastedata');try{const o=parseData(ta.value);ui.pendingOpen={name:'geplakte tekst',o};render()}catch(err){ui.msg='Dit lijkt geen meethulp-back-up. Er is niets veranderd.';render()}}
+  else if(a==='openok'){if(ui.pendingOpen){const o=ui.pendingOpen.o;ui.pendingOpen=null;applyData(o);ui.msg='Bestand geopend.';render()}}
+  else if(a==='opencancel'){ui.pendingOpen=null;render()}
+  else if(a==='sigclear'){S.sig='';touch();render()}
+  else if(a==='copy'){
+    const txt=reportText();const m=$('#rmsg');
+    try{await navigator.clipboard.writeText(txt);if(m)m.textContent='Gekopieerd.'}
+    catch(err){const r=document.createRange();r.selectNodeContents($('#rep'));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);if(m)m.textContent='Kopiëren lukte niet. De tekst is geselecteerd, kopieer hem handmatig.'}}
+  else if(a==='dl'){saveFile('meetrapport-'+new Date().toISOString().slice(0,10)+'.txt',reportText(),$('#rmsg'))}
+  else if(a==='dlh'){saveFile('meetrapport-'+new Date().toISOString().slice(0,10)+'.html',reportHTML(),$('#rmsg'))}
+});
+let dlOk=true;function showDl(){dlOk=true;document.querySelectorAll('.dlb').forEach(x=>{x.hidden=false})}
+document.addEventListener('focusin',()=>{
+  if(S.cur.tab==='rapport'){const b=document.querySelector('.dlb');if(b&&b.hidden){window.claude&&window.claude.use&&window.claude.use('downloads').then(d=>{if(d)showDl()}).catch(()=>{})}}
+});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();ui.installEvt=e;if(S.cur.tab==='start')render()});
+window.addEventListener('appinstalled',()=>{ui.installEvt=null;if(S.cur.tab==='start')render()});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+load().then(()=>{
+  if(window.claude&&window.claude.use)window.claude.use('downloads').then(d=>{if(d)showDl()}).catch(()=>{});
+});
+</script>
+</body>
+</html>

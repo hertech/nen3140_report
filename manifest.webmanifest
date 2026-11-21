@@ -1,0 +1,17 @@
+{
+  "name": "Meethulp NEN 3140",
+  "short_name": "Meethulp",
+  "description": "Meetstaat, visuele inspectie en klantrapport voor NEN 3140 / NEN 1010 deel 6.",
+  "lang": "nl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#efede5",
+  "theme_color": "#0b5d6b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
