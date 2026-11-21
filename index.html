@@ -130,6 +130,7 @@ pre.rep{margin:0;font:12px/1.5 var(--f-mono);white-space:pre-wrap;word-break:bre
 .md p{margin:6px 0}.md ul{margin:4px 0 8px;padding-left:20px}.md li{margin:3px 0}
 .md code{font-family:var(--f-mono);font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .md a{color:var(--acc)}
+input[type=color]{width:64px;height:44px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
 :root[data-theme="light"]{color-scheme:light}
 #printroot{display:none}
 @media print{body>*:not(#printroot){display:none!important}#printroot{display:block!important}html,body{background:#fff!important;margin:0!important;padding:0!important}#printroot .kr{max-width:none}}
@@ -297,7 +298,8 @@ function newGrp(n,ph){return {stt:ST0(),rsn:ST0(),stBlock:'',rsnBlock:'',name:n|
  m:{rloL:'',rloP:'',riso:'',risoN:'',risoLN:'',risoL12:'',risoL13:'',risoL23:'',risoMode:'nieuw',scheid:'',zi:'',zi2:'',zi3:'',duZ:'',zs:'',zs2:'',zs3:'',duPct:'',rcdI:'',rcdT:'',rcdT2:'',rcdT5:'',tk:''}}}
 function newSec(n,ph){return {type:'installatie',name:n,spl:SPL.map(()=>false),vis:VIS.map(()=>({a:'',t:''})),onder:false,draai:'',func:'',stt:{draai:'',func:''},rsn:{draai:'',func:''},groups:[newGrp('Groep 1',ph)]}}
 function defaults(){return {v:2,t:0,
- fixed:{insp:'',bedrijf:'',adres:'',contact:'',instr:'Metrel MI 3108',serie:'',kal:'',norm:'Gemeten en beproefd conform NEN 1010 deel 6.'},
+ fixed:{insp:'',functie:'',bedrijf:'',adres:'',contact:'',tel:'',mail:'',web:'',kvk:'',cert:'',instr:'Metrel MI 3108',serie:'',kal:'',norm:'Gemeten en beproefd conform NEN 1010 deel 6.',def:{docs:'',omvang:'',freq:'',emc:'',uitw:''}},
+ clients:[],brand:{logo:'',color:'#0b5d6b',showName:true,footer:''},
  zref:'',leadsel:{},
  leads:{ra:'blauw → elektrode, zwart → 20 m, groen → variabel'},
  info:{object:'',adres:'',cp:'',cpc:'',ogn:'',oga:'',ocp:'',occ:'',ing:'',ina:'',insp:'',inc:'',jaar:'',soort:'nieuw',stelsel:'',doel:'',emc:'',uitw:'',datum:'',omvang:'',docs:'',freq:'',volgende:'',teken:'',tekenDatum:'',
@@ -325,6 +327,9 @@ function normalize(){
   if(S.cur.tab==='aarding'){S.cur.tab='meten';S.cur.mv='ra'}
   if(!S.cur.mv)S.cur.mv='meet';
   const F=S.fixed,I=S.info;
+  F.def=Object.assign({docs:'',omvang:'',freq:'',emc:'',uitw:''},F.def||{});
+  S.clients=Array.isArray(S.clients)?S.clients:[];
+  S.brand=Object.assign({logo:'',color:'#0b5d6b',showName:true,footer:''},S.brand||{});
   if(!F.insp&&I.insp)F.insp=I.insp;
   if(!F.bedrijf&&I.ing)F.bedrijf=I.ing;
   if(!F.adres&&I.ina)F.adres=I.ina;
@@ -652,7 +657,7 @@ function chipsHTML(){
   return h;
 }
 function navHTML(){
-  const T=[['start','⌂','Start'],['gegevens','▤','Gegevens'],['meten','Ω','Metingen'],['visueel','◉','Visuele inspectie'],['foto','▣','Fotobijlage'],['gebreken','!','Gebreken'],['rapport','✓','Rapport'],['klant','▦','Klantrapport']];
+  const T=[['start','⌂','Start'],['gegevens','▤','Gegevens'],['meten','Ω','Metingen'],['visueel','◉','Visuele inspectie'],['foto','▣','Fotobijlage'],['gebreken','!','Gebreken'],['rapport','✓','Rapport'],['klant','▦','Klantrapport'],['profiel','⚙','Profiel'],['backup','⇅','Back-up']];
   return T.map(([k,ic,l])=>`<button data-act="tab" data-k="${k}"${S.cur.tab===k?' aria-current="page"':''}>${ic} ${l}</button>`).join('');
 }
 function sumHTML(){const c=counts();return `<div><b>${c.ok}</b>voldoet</div><div><b style="color:${c.bad?'var(--bad)':'inherit'}">${c.bad}</b>voldoet niet</div><div><b>${c.open}</b>nog open</div>${c.nu?`<div><b style="color:var(--warn)">${c.nu}</b>niet uitgevoerd</div>`:''}`}
@@ -669,6 +674,8 @@ function viewStart(){
    ${tile('visueel','◉','Visuele inspectie',nVis+' van '+totVis+' beoordeeld')}
    ${tile('foto','▣','Fotobijlage',S.photos.length+' foto’s')}
    ${tile('gebreken','!','Gebreken',S.gebr.length+' in de lijst'+(open?', '+open+' nieuw uit afkeur':''))}
+   ${tile('profiel','⚙','Profiel',S.fixed.insp||'inspecteur, bedrijf, logo')}
+   ${tile('backup','⇅','Back-up','exporteren en importeren')}
    ${tile('klant','▦','Klantrapport','nette uitdraai, opslaan en openen')}
    ${tile('rapport','✓','Rapport',({goed:'Goedgekeurd',niet:'Niet goedgekeurd'})[S.oordeel]||'eindoordeel nog open')}
   </div>
@@ -690,16 +697,14 @@ function viewGegevens(){
    ${B.type==='gen'?`<div class="grid" style="margin-top:10px">${G('Vermogen','info.bron.kva',{unit:'kVA',mode:'decimal'})}${G('Spanning','info.bron.spanning',{unit:'V',mode:'decimal'})}${fas}<div class="fld"><span>Aarding</span>${chk('info.bron.eigen','Generator draait op eigen aarding')}</div></div>`:''}
    ${B.type==='anders'?`<div class="grid" style="margin-top:10px">${fas}${G('Omschrijving bron','info.bron.nb',{cls:'full'})}</div>`:''}`;
   const stB=`<div class="mh"><span class="hint">Kies het stelsel</span>${infoBtn('stelsel')}</div>${seg('info.stelsel',STELSELS.map(t=>[t,t]),{rr:true})}${stelselPanel()}`;
-  const fixB=`<p class="hint" style="margin-bottom:8px">Deze gegevens blijven bewaard bij een nieuwe inspectie.</p><div class="grid">${G('Naam inspecteur',F+'insp')}${G('Bedrijf',F+'bedrijf')}${G('Adres',F+'adres',{cls:'full'})}${G('Contactgegevens',F+'contact',{cls:'full'})}${G('Meetinstrument',F+'instr',{cls:'full'})}${G('Serienummer',F+'serie')}${G('Kalibratiedatum',F+'kal',{ph:'dd-mm-jjjj'})}${area('Toegepaste norm',F+'norm',2)}</div><p class="warn" style="margin-top:8px">Zet hier geen “Scope 8”: dat is een SCIOS-certificeringsscope en mag alleen met certificaat. NEN 3140 of andere normen alleen als het voor jouw werk klopt.</p>`;
-  const xB=`<div class="grid">${S.instr.map((_,i)=>`<h3 class="full" style="margin:6px 0 0">Extra instrument ${i+1}</h3>${G('Omschrijving','instr.'+i+'.o',{cls:'full'})}${G('Type','instr.'+i+'.t')}${G('Kalibratiedatum','instr.'+i+'.k',{ph:'dd-mm-jjjj'})}`).join('')}</div>`;
   return `<p class="hint">Alles is optioneel en blijft bewaard.</p>
   ${det('obj','Object',objB,true)}
   ${det('bron','Bron en aansluiting',bronB,true)}
   ${det('stelsel','Aardingsstelsel',stB,true)}
-  ${det('fixed','Vaste gegevens: inspecteur, instrument en norm',fixB,false)}
-  ${det('og','Opdrachtgever',`<div class="grid">${G('Naam opdrachtgever',I+'ogn',{cls:'full'})}${G('Adres',I+'oga',{cls:'full'})}${G('Naam contactpersoon',I+'ocp')}${G('Contactgegevens',I+'occ')}</div>`,false)}
+  <section class="card"><h2>Inspecteur en bedrijf</h2><p class="hint" style="margin-bottom:8px">Naam, bedrijf, meetinstrument en norm komen uit je profiel en staan automatisch in het rapport: ${esc([S.fixed.insp,S.fixed.bedrijf].filter(Boolean).join(', ')||'nog niet ingevuld')}.</p><button class="btn ghost sm" data-act="tab" data-k="profiel">Profiel openen</button></section>
+  ${det('og','Opdrachtgever',`${clientPick()}<div class="grid">${G('Naam opdrachtgever',I+'ogn',{cls:'full'})}${G('Adres',I+'oga',{cls:'full'})}${G('Naam contactpersoon',I+'ocp')}${G('Contactgegevens',I+'occ')}</div><button class="btn ghost sm" data-act="saveclient" style="margin-top:10px">Bewaar als opdrachtgever</button>`,false)}
   ${det('soort','Soort inspectie en installatie',`<div class="grid">${G('Jaar van aanleg',I+'jaar',{mode:'numeric'})}<div class="fld"><span>Soort inspectie</span>${seg(I+'soort',[['nieuw','Nieuw'],['uitbreiding','Uitbreiding'],['periodiek','Periodiek']])}</div>${G('Doel van de elektrische installatie',I+'doel',{cls:'full'})}${area('Wederzijdse beïnvloeding (EMC, spanningsoverslag, verspreiding van brand)',I+'emc',2)}${area('Uitwendige invloeden (temperatuur, vocht, stof, corrosie, trilling, dieren, zon, bliksem, brand- en explosiegevaar)',I+'uitw',3)}</div>`,false)}
-  ${det('xi','Extra meetinstrumenten',xB,false)}
+  
   ${det('uitv','Uitvoering en documentatie',`<div class="grid">${G('Datum uitvoering inspectie',I+'datum',{ph:'dd-mm-jjjj'})}${G('Inspectiefrequentie',I+'freq',{unit:'jaar',mode:'numeric'})}${area('Omvang van de inspectie (welke delen wel of niet geïnspecteerd)',I+'omvang',2)}${area('Gebruikte documentatie (normen en fabrikantdocumenten)',I+'docs',2)}${G('Datum volgende inspectie',I+'volgende',{ph:'dd-mm-jjjj'})}</div>`,false)}`;
 }
 function viewMeten(){
@@ -823,12 +828,13 @@ const UITL={rloL:'Meet of de beschermingsleidingen goed doorverbonden zijn.',rlo
 const bk=k=>/^riso/.test(k)?'riso':/^rcdt/.test(k)?'rcdt':/^(ra|rh)/.test(k)?'ra':k;
 const KCSS=`.kr{font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:#111;background:#fff;padding:18px;border-radius:8px;text-align:left}
 .kr h1{font-size:22px;margin:0 0 4px;letter-spacing:0;text-transform:none;color:#111}
-.kr h2{font-size:16px;margin:22px 0 8px;border-bottom:2px solid #0b5d6b;padding-bottom:4px;color:#0b5d6b;display:block}
+.kr h2{font-size:16px;margin:22px 0 8px;border-bottom:2px solid var(--ka,#0b5d6b);padding-bottom:4px;color:var(--ka,#0b5d6b);display:block}
 .kr h3{font-size:14px;margin:14px 0 4px;color:#111;text-transform:none;letter-spacing:0}
 .kr p{margin:4px 0;color:#111;font-size:14px}
 .kr .co{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #ccc;padding-bottom:10px;margin-bottom:14px;font-size:12px;color:#444}
 .kr .verdict{font-size:18px;font-weight:600;padding:12px 14px;border-radius:8px;margin:12px 0}
 .kr .verdict.ok{background:#e1f3e8;color:#14532d}.kr .verdict.bad{background:#fde4e1;color:#7f1d1d}.kr .verdict.w{background:#fdf0cc;color:#6b4500}
+.kr .co .brand{display:flex;gap:12px;align-items:flex-start}.kr .logo{max-height:60px;max-width:190px;object-fit:contain;display:block}.kr .foot{margin-top:24px;border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#555}
 .kr .kv{display:grid;grid-template-columns:150px 1fr;gap:2px 10px;font-size:13px}
 .kr .kv b{color:#555;font-weight:500}
 .kr .sumr{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
@@ -888,7 +894,7 @@ function klantInner(){
   }).join('');
   const ar=aardRows().filter(r=>r.status||r.ok!==null||(r.val&&r.val!=='– / –'));
   const foto=S.photos.filter(p=>!shown.has(p.id)).map(p=>PH[p.id]?`<figure><img src="${PH[p.id]}" alt="Foto"><figcaption>${esc(refLabel(p.ref))}${p.cap?' – '+esc(p.cap):''}</figcaption></figure>`:'').join('');
-  return `<div class="co"><div><b>${esc(F.bedrijf||'')}</b><br>${esc(F.adres||'')}<br>${esc(F.contact||'')}</div><div style="text-align:right">Inspectie: ${esc(I.datum||'')}<br>Inspecteur: ${esc(I.teken||F.insp||'')}</div></div>
+  return `<div class="co">${brandHead()}<div style="text-align:right">Inspectie: ${esc(I.datum||'')}<br>Inspecteur: ${esc(I.teken||F.insp||'')}</div></div>
   <h1>Inspectierapport elektrische installatie</h1>
   <div class="kv">${kv('Object',I.object)}${kv('Adres',I.adres)}${kv('Opdrachtgever',I.ogn)}${kv('Bron',bronText())}${kv('Aardingsstelsel',I.stelsel)}</div>
   <div class="verdict ${vc}">${esc(verd)}</div>
@@ -898,40 +904,27 @@ function klantInner(){
   ${S.afw.aan?`<h2>Aanbevelingen</h2><p>${nl2br(S.afw.aan)}</p>`:''}
   <h2>Bijlage A: meetwaarden</h2><p>Per meting staat in gewone woorden wat er gemeten wordt. De cijfers zijn de gemeten waarden met de bijbehorende grens.</p>${bij}${ar.length?`<h3>Aarding</h3>${ktTable(ar)}`:''}
   <h2>Bijlage B: foto’s</h2>${foto||'<p>Geen foto’s.</p>'}
-  <h2>Over deze inspectie</h2><div class="kv">${kv('Toegepaste norm',F.norm)}${kv('Meetinstrument',F.instr)}${kv('Serienummer',F.serie)}${kv('Kalibratiedatum',F.kal)}${kv('Omvang',I.omvang)}${kv('Documentatie',I.docs)}${kv('Meethulp-versie',APP_VERSION)}</div>
-  <h2>Ondertekening</h2><div class="sig"><p>${esc(I.teken||F.insp||'')} ${I.tekenDatum?'· '+esc(I.tekenDatum):''}</p>${S.sig?`<img src="${S.sig}" alt="Handtekening">`:''}</div>`;
+  <h2>Over deze inspectie</h2><div class="kv">${kv('Functie inspecteur',F.functie)}${kv('Certificering',F.cert)}${kv('Toegepaste norm',F.norm)}${kv('Meetinstrument',F.instr)}${kv('Serienummer',F.serie)}${kv('Kalibratiedatum',F.kal)}${kv('Omvang',I.omvang)}${kv('Documentatie',I.docs)}${kv('Meethulp-versie',APP_VERSION)}</div>
+  <h2>Ondertekening</h2><div class="sig"><p>${esc(I.teken||F.insp||'')} ${I.tekenDatum?'· '+esc(I.tekenDatum):''}</p>${S.sig?`<img src="${S.sig}" alt="Handtekening">`:''}</div>${(S.brand&&S.brand.footer)?`<div class="foot">${nl2br(S.brand.footer)}</div>`:''}`;
 }
-function dataJSON(){
-  return JSON.stringify({app:'meethulp',v:2,ver:APP_VERSION,S:S,photos:S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))}).replace(/</g,'\\u003c');
-}
+function dataJSON(){return exportObj('full')}
 function klantHTML(){
-  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspectierapport ${esc(S.info.object||'')}</title><style>body{margin:0;background:#fff}.kr{max-width:820px;margin:0 auto}${KCSS}</style></head><body><div class="kr">${klantInner()}</div><script type="application/json" id="meethulp-data">${dataJSON()}<\/script></body></html>`;
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspectierapport ${esc(S.info.object||'')}</title><style>body{margin:0;background:#fff}.kr{max-width:820px;margin:0 auto}${KCSS}</style></head><body>${krOpen()}${klantInner()}</div><script type="application/json" id="meethulp-data">${dataJSON()}<\/script></body></html>`;
 }
 function parseData(txt){
   let j=String(txt).trim();
   const m=j.match(/<script type="application\/json" id="meethulp-data">([\s\S]*?)<\/script>/);
   if(m)j=m[1];
   const o=JSON.parse(j);
-  if(!o||o.app!=='meethulp'||!o.S)throw new Error('geen meethulp-bestand');
-  return o;
-}
-function applyData(o){
-  S.photos.forEach(p=>dropPhotoStore(p.id));
-  S=merge(defaults(),o.S);normalize();S.cur.tab='start';
-  (o.photos||[]).forEach(p=>{if(p.d){PH[p.id]=p.d;savePhoto(p.id)}});
-  touch();render();
+  if(!o||o.app!=='meethulp'||!o.S||typeof o.S!=='object')throw new Error('geen meethulp-bestand');
+  return {S:o.S,photos:Array.isArray(o.photos)?o.photos:[],appVersion:o.appVersion||o.ver||null,schema:(+o.schema)||o.v||null,kind:o.kind==='profile'?'profile':'full',exportedAt:o.exportedAt||null};
 }
 function fileName(){return 'klantrapport-'+((S.info.object||'inspectie').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||'inspectie')+'-'+new Date().toISOString().slice(0,10)+'.html'}
 function fileCard(){
   return `<section class="card"><h2>Bewaren</h2><p class="hint" style="margin-bottom:8px">Eén bestand per klant: het klantrapport met alle meetgegevens en foto’s erin. Je kunt het later weer openen om te corrigeren. Het bestand bevat ook alles wat je intern hebt ingevuld.</p><div class="row"><button class="btn" data-act="pdf">Exporteer als PDF</button><button class="btn" data-act="savefile">Opslaan als bestand</button><button class="btn ghost" data-act="copydata">Kopieer back-uptekst</button></div><p class="hint" id="fmsg" style="margin-top:6px"></p></section>`;
 }
-function openCard(){
-  const po=ui.pendingOpen;
-  return `<section class="card"><h2>Openen</h2>${po?`<div class="warn">Bestand “${esc(po.name)}” openen? De huidige inspectie in de app wordt vervangen. Bewaar die eerst als je hem nog nodig hebt.</div><div class="row" style="margin-top:8px"><button class="btn dangerx" data-act="openok">Ja, openen</button><button class="btn ghost" data-act="opencancel">Annuleren</button></div>`:`<label class="btn ghost">Bestand kiezen…<input class="vh" type="file" accept=".html,.htm,.json,text/html,application/json" data-open="1"></label>`}
-  <details style="margin-top:10px"><summary>Openen vanuit tekst</summary><label class="fld" style="margin-top:8px"><span>Plak hier de back-uptekst</span><textarea id="pastedata" rows="3" placeholder="Plak de gekopieerde back-uptekst"></textarea></label><button class="btn ghost" data-act="openpaste" style="margin-top:8px">Openen vanuit tekst</button></details></section>`;
-}
 function viewKlant(){
-  return `${fileCard()}${openCard()}<p class="hint">Voorbeeld van het klantrapport. Controleer de uitleg per meting voordat je het naar een klant stuurt. Met “Exporteer als PDF” opent het afdrukvenster: kies daar “Opslaan als PDF” (iPhone: deelknop, daarna “Bewaar in Bestanden”).</p><style>${KCSS}</style><div class="kr">${klantInner()}</div>`;
+  return `${fileCard()}<p class="hint">Een bestand openen of een back-up terugzetten kan onder <button class="lnk" data-act="tab" data-k="backup">Back-up</button>.</p><p class="hint">Voorbeeld van het klantrapport. Controleer de uitleg per meting voordat je het naar een klant stuurt. Met “Exporteer als PDF” opent het afdrukvenster: kies daar “Opslaan als PDF” (iPhone: deelknop, daarna “Bewaar in Bestanden”).</p><style>${KCSS}</style>${krOpen()}${klantInner()}</div>`;
 }
 
 function bronText(){
@@ -953,7 +946,7 @@ function reportText(){
   hd('Object');kv('Object',I.object);kv('Adres',I.adres);kv('Contactpersoon',[I.cp,I.cpc].filter(Boolean).join(', '));
   hd('Bron en aardingsstelsel');kv('Bron',bronText());kv('Aardingsstelsel',I.stelsel);
   hd('Opdrachtgever');kv('Naam',I.ogn);kv('Adres',I.oga);kv('Contactpersoon',[I.ocp,I.occ].filter(Boolean).join(', '));
-  hd('Inspecteur en meetinstrument');kv('Inspecteur',F.insp);kv('Bedrijf',F.bedrijf);kv('Adres',F.adres);kv('Contact',F.contact);kv('Meetinstrument',F.instr);kv('Serienummer',F.serie);kv('Kalibratiedatum',F.kal);
+  hd('Inspecteur en meetinstrument');kv('Inspecteur',F.insp);kv('Functie',F.functie);kv('Bedrijf',F.bedrijf);kv('Adres',F.adres);kv('Contact',F.contact);kv('Telefoon',F.tel);kv('E-mail',F.mail);kv('Website',F.web);kv('KvK',F.kvk);kv('Certificering',F.cert);kv('Meetinstrument',F.instr);kv('Serienummer',F.serie);kv('Kalibratiedatum',F.kal);
   S.instr.forEach((x,i)=>{if(x.o||x.t||x.k)L.push(`Extra instrument ${i+1}: ${x.o} | ${x.t} | kalibratie ${x.k}`)});
   const ls=Object.keys(PINLBL).filter(k=>S.leadsel&&S.leadsel[k]);
   if(ls.length){hd('Aansluiting meetinstrument');ls.forEach(k=>L.push(`${PINLBL[k]}: ${S.leadsel[k]}`))}
@@ -999,6 +992,181 @@ function viewRapport(){
   <section class="card"><h2>Rapport</h2><pre class="rep" id="rep"></pre>
    <div class="row" style="margin-top:10px"><button class="btn" data-act="copy">Kopieer tekst</button><button class="btn ghost dlb" data-act="dl" hidden>Bewaar als .txt</button><button class="btn ghost dlb" data-act="dlh" hidden>Bewaar als HTML met foto’s</button><button class="btn" data-act="pdf">Klantrapport als PDF</button></div><p class="hint" id="rmsg" style="margin-top:6px"></p></section>
   <section class="card"><h2>Nieuwe inspectie</h2><p class="hint" style="margin-bottom:8px">Wist object, metingen, visuele punten, gebreken en foto’s. Vaste gegevens en grenswaarden blijven staan.</p>${wipeBlock()}</section>`;
+}
+
+/* ---------- profiel, rapportstijl en back-up ---------- */
+const SCHEMA=2; // opbouw van de opgeslagen gegevens; alleen ophogen bij een wijziging die oude gegevens breekt
+const PROFKEYS=['fixed','instr','clients','brand','limits','notes','leads','leadsel'];
+const accent=()=>/^#[0-9a-f]{6}$/i.test((S.brand&&S.brand.color)||'')?S.brand.color:'#0b5d6b';
+const krOpen=()=>`<div class="kr" style="--ka:${accent()}">`;
+const todayNL=()=>{const d=new Date();return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear()};
+function brandHead(){
+  const F=S.fixed,B=S.brand||{},ln=[];
+  if(B.showName!==false&&F.bedrijf)ln.push(`<b>${esc(F.bedrijf)}</b>`);
+  if(F.adres)ln.push(esc(F.adres));
+  if(F.contact)ln.push(esc(F.contact));
+  const c2=[F.tel,F.mail,F.web].filter(Boolean).map(esc).join(' · ');if(c2)ln.push(c2);
+  if(F.kvk)ln.push('KvK '+esc(F.kvk));
+  return `<div class="brand">${B.logo?`<img class="logo" src="${B.logo}" alt="Logo">`:''}<div>${ln.join('<br>')}</div></div>`;
+}
+function brandPreview(){
+  const F=S.fixed;
+  return `${krOpen()}<div class="co">${brandHead()}<div style="text-align:right">Inspectie: ${todayNL()}<br>Inspecteur: ${esc(F.insp||'')}</div></div><h2>Voorbeeld van kop en kleur</h2>${S.brand.footer?`<div class="foot">${nl2br(S.brand.footer)}</div>`:''}</div>`;
+}
+function applyDefaults(){
+  const d=S.fixed.def||{},I=S.info;let n=0;
+  [['docs','docs'],['omvang','omvang'],['freq','freq'],['emc','emc'],['uitw','uitw']].forEach(([a,b])=>{if(d[a]&&!I[b]){I[b]=d[a];n++}});
+  if(!I.datum){I.datum=todayNL();n++}
+  return n;
+}
+async function setLogo(file){
+  try{
+    const im=await readImg(file);
+    if(!im.width||!im.height)throw 0;
+    const sc=Math.min(1,480/im.width,200/im.height);
+    const w=Math.max(1,Math.round(im.width*sc)),h=Math.max(1,Math.round(im.height*sc));
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);
+    let url=c.toDataURL('image/png');
+    if(url.length>180000){const c2=document.createElement('canvas');c2.width=w;c2.height=h;const x=c2.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);url=c2.toDataURL('image/jpeg',.85)}
+    S.brand.logo=url;touch();render();
+  }catch(e){ui.msg='Logo laden lukte niet. Probeer een PNG of JPG.';render()}
+}
+function clientPick(){
+  if(!S.clients.length)return '<p class="hint" style="margin-bottom:8px">Nog geen opgeslagen opdrachtgevers. Vul de gegevens in en kies “Bewaar als opdrachtgever”.</p>';
+  return `<label class="fld" style="margin-bottom:10px"><span>Kies een opgeslagen opdrachtgever</span><select data-client="1"><option value="">– kies –</option>${S.clients.map((c,i)=>`<option value="${i}">${esc(c.n)}</option>`).join('')}</select></label>`;
+}
+
+/* versiecontrole bij importeren (Semantic Versioning) */
+const semParse=v=>{const m=String(v||'').match(/^(\d+)\.(\d+)\.(\d+)/);return m?[+m[1],+m[2],+m[3]]:null};
+const semCmp=(a,b)=>{for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]<b[i]?-1:1}return 0};
+function checkImport(o){
+  const msgs=[];let level='ok';
+  const warn=()=>{if(level==='ok')level='warn'};
+  if(o.schema&&o.schema>SCHEMA){level='block';msgs.push(`De opbouw van dit bestand (${o.schema}) is nieuwer dan deze app kent (${SCHEMA}). Werk eerst de app bij en probeer het opnieuw.`)}
+  const fv=semParse(o.appVersion),av=semParse(APP_VERSION);
+  if(!fv){warn();msgs.push('Dit bestand heeft geen versienummer (gemaakt met een versie van vóór 1.0.1). Controleer je gegevens na het importeren.')}
+  else if(fv[0]>av[0]){level='block';msgs.push(`Dit bestand komt van versie ${o.appVersion}, een nieuwere hoofdversie dan deze app (${APP_VERSION}). Werk eerst de app bij (Start, Zoek naar update) en probeer het opnieuw.`)}
+  else if(fv[0]<av[0]){warn();msgs.push(`Dit bestand komt van een oudere hoofdversie (${o.appVersion}). Controleer je gegevens na het importeren.`)}
+  else{
+    const c=semCmp(fv,av);
+    if(c>0){warn();msgs.push(`Dit bestand is gemaakt met een nieuwere versie (${o.appVersion}) dan deze app (${APP_VERSION}). Nieuwe velden worden bewaard maar nog niet getoond. Werk de app bij als je ze nodig hebt.`)}
+    else if(c<0)msgs.push(`Dit bestand komt van een oudere versie (${o.appVersion}). Ontbrekende velden worden met standaardwaarden aangevuld.`);
+    else msgs.push(`Zelfde versie als deze app (${APP_VERSION}).`);
+  }
+  return {level,msgs};
+}
+function exportObj(kind){
+  const o={app:'meethulp',v:2,schema:SCHEMA,appVersion:APP_VERSION,kind,exportedAt:new Date().toISOString()};
+  if(kind==='profile'){const P={};PROFKEYS.forEach(k=>{P[k]=S[k]});o.S=P;o.photos=[]}
+  else{o.S=S;o.photos=S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))}
+  return JSON.stringify(o).replace(/</g,'\\u003c');
+}
+const exportName=kind=>`meethulp-${kind==='profile'?'profiel':'backup'}-${new Date().toISOString().slice(0,10)}-v${APP_VERSION}.json`;
+const canShareFiles=()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'x.json',{type:'application/json'})]}))}catch(e){return false}};
+async function shareFile(name,data,msgEl){
+  const say=t=>{if(msgEl)msgEl.textContent=t};
+  try{
+    const f=new File([data],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});say('Gedeeld.');return}
+  }catch(e){if(e&&e.name==='AbortError'){say('Geannuleerd.');return}}
+  await saveFile(name,data,msgEl);
+}
+async function stashPrevious(){
+  if(!idb)return;
+  try{
+    const rec={t:Date.now(),ver:APP_VERSION,json:JSON.stringify(S),photos:S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))};
+    await idbPut('kv','vorige',rec);ui.prev={t:rec.t,ver:rec.ver};
+  }catch(e){}
+}
+async function restorePrevious(){
+  const r=await idbGet('kv','vorige');if(!r)throw new Error('geen vorige staat');
+  const cur={t:Date.now(),ver:APP_VERSION,json:JSON.stringify(S),photos:S.photos.map(p=>({id:p.id,d:PH[p.id]||''}))};
+  S.photos.forEach(p=>dropPhotoStore(p.id));
+  S=merge(defaults(),JSON.parse(r.json));normalize();S.cur.tab='start';
+  (r.photos||[]).forEach(p=>{if(p.d){PH[p.id]=p.d;savePhoto(p.id)}});
+  await idbPut('kv','vorige',cur);ui.prev={t:cur.t,ver:cur.ver};
+  touch();
+}
+function startImport(name,text){
+  try{const o=parseData(text);ui.imp={name,o,chk:checkImport(o),mode:o.kind==='profile'?'prof':'all'}}
+  catch(err){ui.imp=null;ui.msg='Dit bestand is geen meethulp-bestand. Er is niets veranderd.'}
+  render();
+}
+async function doImport(){
+  const {o,mode}=ui.imp;
+  await stashPrevious();
+  let msg;
+  if(mode==='prof'){
+    const D=defaults();
+    PROFKEYS.forEach(k=>{if(o.S[k]!==undefined)S[k]=merge(D[k],o.S[k])});
+    normalize();msg='Profiel en instellingen geïmporteerd.';
+  }else{
+    const keep={};PROFKEYS.forEach(k=>{keep[k]=S[k]});
+    const next=merge(defaults(),o.S);
+    S.photos.forEach(p=>dropPhotoStore(p.id));
+    S=next;
+    if(mode==='insp')PROFKEYS.forEach(k=>{S[k]=keep[k]});
+    normalize();
+    o.photos.forEach(p=>{if(p&&p.id&&p.d){PH[p.id]=p.d;savePhoto(p.id)}});
+    msg=mode==='insp'?'Inspectie geïmporteerd. Je eigen profiel is behouden.':'Alles geïmporteerd.';
+  }
+  S.cur.tab='start';ui.imp=null;
+  touch();await persist();
+  return msg+' Je kunt dit ongedaan maken onder Back-up.';
+}
+
+function viewProfiel(){
+  const F='fixed.',B=S.brand,G=(l,p,o)=>fld(l,p,o);
+  const idB=`<div class="grid">${G('Naam inspecteur',F+'insp')}${G('Functie',F+'functie')}${G('Bedrijf',F+'bedrijf',{cls:'full'})}${G('Adres',F+'adres',{cls:'full'})}${G('Telefoon',F+'tel',{mode:'tel'})}${G('E-mail',F+'mail',{mode:'email'})}${G('Website',F+'web')}${G('KvK-nummer',F+'kvk')}${G('Contactgegevens (vrije regel)',F+'contact',{cls:'full'})}${area('Certificering en registraties (alleen wat voor jou klopt)',F+'cert',2,'')}</div><p class="warn" style="margin-top:8px">Zet hier geen “Scope 8”: dat is een SCIOS-certificeringsscope en mag alleen met certificaat. NEN 3140 of andere normen alleen als het voor jouw werk klopt.</p>`;
+  const instB=`<div class="grid">${G('Meetinstrument',F+'instr',{cls:'full'})}${G('Serienummer',F+'serie')}${G('Kalibratiedatum',F+'kal',{ph:'dd-mm-jjjj'})}${S.instr.map((_,i)=>`<h3 class="full" style="margin:6px 0 0">Extra instrument ${i+1}</h3>${G('Omschrijving','instr.'+i+'.o',{cls:'full'})}${G('Type','instr.'+i+'.t')}${G('Kalibratiedatum','instr.'+i+'.k',{ph:'dd-mm-jjjj'})}`).join('')}</div>`;
+  const defB=`<p class="hint" style="margin-bottom:8px">Deze waarden worden ingevuld bij “Nieuwe inspectie beginnen”, samen met de datum van vandaag. Je kunt ze per inspectie aanpassen.</p><div class="grid">${area('Toegepaste norm',F+'norm',2)}${area('Gebruikte documentatie',F+'def.docs',2,'')}${area('Omvang van de inspectie',F+'def.omvang',2,'')}${G('Inspectiefrequentie',F+'def.freq',{unit:'jaar',mode:'numeric'})}${area('Wederzijdse beïnvloeding (EMC, spanningsoverslag, brand)',F+'def.emc',2,'')}${area('Uitwendige invloeden',F+'def.uitw',2,'')}</div><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="applydef">Nu toepassen op deze inspectie (alleen lege velden)</button></div>`;
+  const clB=S.clients.length?S.clients.map((c,i)=>`<div class="gal" style="align-items:center"><div class="fld"><span><b style="color:var(--ink)">${esc(c.n)}</b></span><span>${esc([c.a,c.cp,c.c].filter(Boolean).join(' · '))}</span></div><button class="btn ${ui.confirm==='cl'+i?'dangerx':'danger'} sm" data-act="delclient" data-i="${i}">${ui.confirm==='cl'+i?'Zeker?':'Verwijder'}</button></div>`).join(''):'<p class="hint">Nog geen opgeslagen opdrachtgevers.</p>';
+  const clC=`${clB}<p class="hint" style="margin-top:8px">Toevoegen doe je bij Gegevens, onder Opdrachtgever, met “Bewaar als opdrachtgever”.</p>`;
+  const styB=`<div class="fld"><span>Logo</span>${B.logo?`<img src="${B.logo}" alt="Logo" style="max-height:70px;max-width:100%;align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px">`:'<p class="hint">Nog geen logo gekozen.</p>'}<div class="row" style="margin-top:6px"><label class="btn ghost sm">Logo kiezen<input class="vh" type="file" accept="image/*" data-logo="1"></label>${B.logo?'<button class="btn danger sm" data-act="rmlogo">Logo verwijderen</button>':''}</div><p class="hint">PNG met transparante achtergrond werkt het best. Het logo wordt automatisch verkleind.</p></div>
+   <div class="fld" style="margin-top:12px"><span>Accentkleur (koppen en lijnen in het rapport)</span><div class="row"><input type="color" id="f-brand_color" data-p="brand.color" value="${esc(accent())}"><button class="btn ghost sm" data-act="brandreset">Standaardkleur</button></div></div>
+   <div style="margin-top:6px">${chk('brand.showName','Bedrijfsnaam naast het logo tonen')}</div>
+   <div class="grid" style="margin-top:6px">${area('Voettekst onder het rapport (bijvoorbeeld KvK of voorwaarden)','brand.footer',3,'')}</div>
+   <h3>Voorbeeld</h3><style>${KCSS}</style><div id="brandprev"></div>`;
+  return `<p class="hint">Je profiel blijft bewaard bij een nieuwe inspectie en reist mee in een back-up.</p>
+  ${det('pr1','Inspecteur en bedrijf',idB,true)}
+  ${det('pr2','Meetinstrumenten',instB,false)}
+  ${det('pr3','Standaardwaarden voor een nieuwe inspectie',defB,false)}
+  ${det('pr4','Opgeslagen opdrachtgevers ('+S.clients.length+')',clC,false)}
+  ${det('pr5','Rapportstijl: logo, kleur en voettekst',styB,true)}`;
+}
+function impCard(){
+  const {name,o,chk}=ui.imp;
+  const I=(o.S&&o.S.info)||{},F=o.S.fixed||{},full=o.kind==='full';
+  const L=(k,v)=>`<p class="hint" style="margin:2px 0"><b style="color:var(--ink)">${esc(k)}:</b> ${esc(v)}</p>`;
+  let info=L('Bestand',name)+L('Soort',full?'Volledige back-up (inspectie en profiel)':'Alleen profiel en instellingen')+L('Gemaakt met versie',o.appVersion||'onbekend (ouder dan 1.0.1)')+L('Gemaakt op',o.exportedAt?new Date(o.exportedAt).toLocaleString('nl-NL'):'onbekend');
+  if(full)info+=L('Object',I.object||'–')+L('Inhoud',`${(o.S.secs||[]).length} delen, ${(o.S.gebr||[]).length} gebreken, ${o.photos.length} foto’s`);
+  if(F.insp||F.bedrijf)info+=L('Profiel',[F.insp,F.bedrijf].filter(Boolean).join(', '));
+  if(o.S.brand&&o.S.brand.logo)info+=L('Logo','aanwezig');
+  const cls=chk.level==='block'?'style="background:var(--badbg);color:var(--bad);border-radius:8px;padding:8px 10px;font-size:13px;margin:10px 0"':'class="warn" style="margin:10px 0"';
+  const ver=`<div ${chk.level==='ok'?'class="hint" style="margin:10px 0"':cls}>${chk.msgs.map(esc).join('<br>')}</div>`;
+  const opt=(v,t,d)=>`<label class="chk"><input type="radio" name="impmode" data-impmode="${v}"${ui.imp.mode===v?' checked':''}><span><b>${t}</b><br><small style="color:var(--mut)">${d}</small></span></label>`;
+  const modes=chk.level==='block'?'':`<h3>Wat wil je importeren?</h3>${full?opt('all','Alles vervangen','Je huidige inspectie én profiel worden vervangen door die uit het bestand.')+opt('insp','Alleen de inspectie','Inspectie en foto’s uit het bestand. Je eigen profiel, logo en grenswaarden blijven staan.'):''}${opt('prof','Alleen het profiel',full?'Profiel, logo, opdrachtgevers en grenswaarden uit het bestand. Je huidige inspectie blijft staan.':'Profiel, logo, opdrachtgevers en grenswaarden uit het bestand vervangen die op dit toestel.')}`;
+  return `<section class="card"><h2>Bestand controleren</h2>${info}${ver}${modes}<div class="row" style="margin-top:12px">${chk.level==='block'?'':'<button class="btn" data-act="impok">Importeren</button>'}<button class="btn ghost" data-act="impcancel">Annuleren</button></div></section>`;
+}
+function viewBackup(){
+  if(!ui.est&&navigator.storage&&navigator.storage.estimate){
+    ui.est={};
+    navigator.storage.estimate().then(e=>{ui.est.u=e.usage;ui.est.q=e.quota;if(S.cur.tab==='backup')render()}).catch(()=>{});
+    if(navigator.storage.persisted)navigator.storage.persisted().then(p=>{ui.est.p=p;if(S.cur.tab==='backup')render()}).catch(()=>{});
+  }
+  const share=canShareFiles();
+  const mb=x=>(x/1048576).toFixed(1).replace('.',',')+' MB';
+  const row=k=>`<div class="row"><button class="btn" data-act="exp" data-k="${k}">Bewaar als bestand</button>${share?`<button class="btn ghost" data-act="exps" data-k="${k}">Delen…</button>`:''}</div>`;
+  const E=ui.est||{};
+  const st=E.u!=null?`Opslag op dit toestel: ${mb(E.u)} in gebruik van ${mb(E.q)}.${E.p===true?' De browser mag deze gegevens niet zelf opruimen.':E.p===false?' Let op: de browser mag deze gegevens bij opslagdruk zelf opruimen. Maak dus regelmatig een back-up.':''}`:'';
+  return `<section class="card"><h2>Back-up maken</h2><p class="hint" style="margin-bottom:10px">Bewaar je gegevens als bestand, bijvoorbeeld om ze op een ander toestel of in een andere installatie van de app te zetten. Het bestand bevat het versienummer (${esc(APP_VERSION)}) zodat de ontvangende app kan controleren of het past.</p>
+   <h3>Volledig</h3><p class="hint" style="margin-bottom:8px">Huidige inspectie met foto’s, plus je profiel, logo, opdrachtgevers en grenswaarden.</p>${row('full')}
+   <h3>Alleen profiel</h3><p class="hint" style="margin-bottom:8px">Bedrijf, inspecteur, instrumenten, standaardwaarden, logo, opdrachtgevers en grenswaarden. Handig om een collega of klasgenoot dezelfde instellingen te geven.</p>${row('profile')}
+   <p class="hint" id="bmsg" style="margin-top:8px"></p></section>
+  ${ui.imp?impCard():`<section class="card"><h2>Importeren</h2><p class="hint" style="margin-bottom:8px">Kies een back-upbestand van Meethulp (ook een eerder opgeslagen klantrapport met meetgegevens kan). Je ziet eerst wat erin zit en of de versie past. Er wordt nog niets veranderd.</p><label class="btn">Bestand kiezen…<input class="vh" type="file" data-open="1"></label>
+   <details style="margin-top:10px"><summary>Importeren vanuit tekst</summary><label class="fld" style="margin-top:8px"><span>Plak hier de back-uptekst</span><textarea id="pastedata" rows="3" placeholder="Plak de gekopieerde back-uptekst"></textarea></label><button class="btn ghost" data-act="openpaste" style="margin-top:8px">Controleren</button></details></section>`}
+  ${ui.prev?`<section class="card"><h2>Ongedaan maken</h2><p class="hint" style="margin-bottom:8px">Voor elke import en elke nieuwe inspectie bewaart de app de vorige staat (van ${esc(new Date(ui.prev.t).toLocaleString('nl-NL'))}, versie ${esc(ui.prev.ver)}). Terugzetten wisselt de twee staten om: nog een keer drukken brengt je weer terug.</p><button class="btn ghost" data-act="undoimp">Vorige staat terugzetten</button></section>`:''}
+  <section class="card"><h2>Opslag</h2><p class="hint">${esc(st)||'Gegevens staan in IndexedDB in deze browser.'}</p><p class="hint" style="margin-top:6px">App-versie ${esc(APP_VERSION)}, opbouw van de gegevens ${SCHEMA}.</p></section>`;
 }
 
 /* ---------- thema ---------- */
@@ -1060,7 +1228,7 @@ function viewChangelog(){
 function render(){
   const y=window.scrollY;
   $('#chips').innerHTML=chipsHTML();fixChips();
-  const v={start:viewStart,gegevens:viewGegevens,meten:viewMeten,visueel:viewVisueel,foto:viewFoto,gebreken:viewGebreken,rapport:viewRapport,klant:viewKlant,changelog:viewChangelog}[S.cur.tab]||viewStart;
+  const v={start:viewStart,gegevens:viewGegevens,meten:viewMeten,visueel:viewVisueel,foto:viewFoto,gebreken:viewGebreken,rapport:viewRapport,klant:viewKlant,changelog:viewChangelog,profiel:viewProfiel,backup:viewBackup}[S.cur.tab]||viewStart;
   $('#main').innerHTML=(ui.waiting?`<div class="warn"><b>Nieuwe versie beschikbaar.</b> Je gegevens blijven bewaard.<div style="margin-top:8px"><button class="btn sm" data-act="doupd">Nu bijwerken</button></div></div>`:'')+(ui.updated?`<div class="warn"><b>Bijgewerkt naar versie ${APP_VERSION}.</b> Eerder: ${esc(ui.updated)}.<div class="row" style="margin-top:8px"><button class="btn sm" data-act="tab" data-k="changelog">Bekijk wat is nieuw</button><button class="btn ghost sm" data-act="dismissupd">Sluiten</button></div></div>`:'')+(ui.msg?`<div class="warn">${esc(ui.msg)}</div>`:'')+v();
   ui.msg='';
   $('#nav').innerHTML=navHTML();
@@ -1091,6 +1259,7 @@ function updateCalc(){
   const zl=$('#'+pid(`secs.${S.cur.s}.groups.${S.cur.g}.m.duZ`));if(zl&&S.cur.tab==='meten'){const r=rowsFor(curSec(),curGrp()).find(x=>x.key==='zi');zl.placeholder=r&&r.val!==''?r.val+' (uit Zi)':'';const zf=$('#f-zref');if(zf){const zi=zrefInfo(curGrp());zf.placeholder=S.zref===''?(zi.src.indexOf('overgenomen')===0?fx(zi.v,3)+' (automatisch)':'vul één keer in'):''}}
   const rc=$('#rlcalc');if(rc){const L=num(S.limits.L),A=num(S.limits.A),rho=num(S.limits.rho);rc.textContent=(L>0&&A>0&&rho>0)?`R = ${fx(rho,4)} × ${fx(L)} / ${fx(A)} = ${fx(rho*L/A,3)} Ω`:'Vul lengte en doorsnede in voor een rekenvoorbeeld.'}
   const rep=$('#rep');if(rep)rep.textContent=reportText();
+  const bp=$('#brandprev');if(bp)bp.innerHTML=brandPreview();
   document.querySelectorAll('.sum').forEach(sm=>{sm.innerHTML=sumHTML()});
 }
 function initSig(){
@@ -1125,6 +1294,7 @@ async function persist(){
 }
 async function load(){
   try{idb=await idbOpen()}catch(e){idb=null}
+  if(idb){try{const r=await idbGet('kv','vorige');if(r)ui.prev={t:r.t,ver:r.ver}}catch(e){}}
   let found=false,migrated=false;
   if(idb){try{const r=await idbGet('kv','state');if(r&&r.json){S=merge(defaults(),JSON.parse(r.json));found=true}}catch(e){}}
   if(!found){try{const raw=localStorage.getItem(KEY);if(raw){S=merge(defaults(),JSON.parse(raw));migrated=true}}catch(e){}}
@@ -1162,10 +1332,13 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.dataset.client!==undefined){const c=t.value!==''?S.clients[+t.value]:null;if(c){const I=S.info;I.ogn=c.n;I.oga=c.a;I.ocp=c.cp;I.occ=c.c;touch();render()}return}
+  if(t.dataset.impmode!==undefined){if(ui.imp&&t.checked){ui.imp.mode=t.dataset.impmode;render()}return}
+  if(t.dataset.logo!==undefined){const f=(t.files||[])[0];t.value='';if(f)setLogo(f);return}
   if(t.dataset.open!==undefined){
     const f=(t.files||[])[0];t.value='';if(!f)return;
     const rd=new FileReader();
-    rd.onload=()=>{try{ui.pendingOpen={name:f.name,o:parseData(rd.result)}}catch(err){ui.pendingOpen=null;ui.msg='Dit bestand is geen meethulp-bestand. Er is niets veranderd.'}render()};
+    rd.onload=()=>startImport(f.name,rd.result);
     rd.onerror=()=>{ui.msg='Bestand lezen mislukt. Er is niets veranderd.';render()};
     rd.readAsText(f);return;
   }
@@ -1183,7 +1356,7 @@ async function saveFile(name,data,msgEl){
       const d=await window.claude.use('downloads');
       if(d){await d.save({filename:name,data});say('Bewaard.');return}
     }
-    const type=/\.html$/.test(name)?'text/html':'text/plain';
+    const type=/\.html$/.test(name)?'text/html':/\.json$/.test(name)?'application/json':'text/plain';
     const blob=new Blob([data],{type:type+';charset=utf-8'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
     document.body.appendChild(a);a.click();a.remove();
@@ -1195,7 +1368,7 @@ async function saveFile(name,data,msgEl){
 function printReport(){
   let r=$('#printroot');
   if(!r){r=document.createElement('div');r.id='printroot';document.body.appendChild(r)}
-  r.innerHTML=`<style>${KCSS}</style><div class="kr">${klantInner()}</div>`;
+  r.innerHTML=`<style>${KCSS}</style>${krOpen()}${klantInner()}</div>`;
   const old=document.title;
   document.title=fileName().replace(/\.html$/,'');
   const done=()=>{document.title=old;r.innerHTML='';window.removeEventListener('afterprint',done)};
@@ -1205,7 +1378,7 @@ function printReport(){
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
-  if(a!=='delsec'&&a!=='delgrp'&&a!=='wipe'&&a!=='gdel')ui.confirm='';
+  if(a!=='delsec'&&a!=='delgrp'&&a!=='wipe'&&a!=='gdel'&&a!=='delclient')ui.confirm='';
   if(a==='tab'){S.cur.tab=b.dataset.k;if(b.dataset.k==='changelog')ui.updated=null;if(b.dataset.k==='gebreken')fillGebr();touch();render();window.scrollTo(0,0)}
   else if(a==='sec'){S.cur.s=+b.dataset.i;S.cur.g=0;ui.confirm='';touch();render()}
   else if(a==='grp'){S.cur.g=+b.dataset.i;ui.confirm='';touch();render()}
@@ -1228,9 +1401,10 @@ document.addEventListener('click',async e=>{
     S.secs.splice(S.cur.s,1);S.cur.s=0;S.cur.g=0;ui.confirm='';touch();render()}
   else if(a==='wipe'){
     if(ui.confirm!=='wipe'){ui.confirm='wipe';render();return}
+    await stashPrevious();
     S.photos.forEach(p=>dropPhotoStore(p.id));
-    const keep={limits:S.limits,notes:S.notes,fixed:S.fixed,leads:S.leads,leadsel:S.leadsel,instr:S.instr};
-    S=defaults();Object.assign(S,keep);S.cur.tab='start';ui.confirm='';touch();render();window.scrollTo(0,0)}
+    const keep={limits:S.limits,notes:S.notes,fixed:S.fixed,leads:S.leads,leadsel:S.leadsel,instr:S.instr,clients:S.clients,brand:S.brand};
+    S=defaults();Object.assign(S,keep);normalize();applyDefaults();S.cur.tab='start';ui.confirm='';ui.msg='Nieuwe inspectie gestart. De vorige is bewaard: je kunt die terugzetten via Back-up, Ongedaan maken.';touch();render();window.scrollTo(0,0)}
   else if(a==='vm'){S.cur.vm=b.dataset.v;touch();render()}
   else if(a==='splshow'){ui.splShow[S.cur.s]=!ui.splShow[S.cur.s];render()}
   else if(a==='delph'){
@@ -1247,6 +1421,31 @@ document.addEventListener('click',async e=>{
   else if(a==='settheme'){setTheme(b.dataset.v)}
   else if(a==='dismissupd'){ui.updated=null;render()}
   else if(a==='clretry'){ui.cl=null;render()}
+  else if(a==='exp'||a==='exps'){
+    const k=b.dataset.k,m=$('#bmsg'),name=exportName(k),data=exportObj(k);
+    if(a==='exp')await saveFile(name,data,m);else await shareFile(name,data,m)}
+  else if(a==='impok'){
+    if(!ui.imp||ui.imp.chk.level==='block')return;
+    try{ui.msg=await doImport()}catch(err){ui.msg='Importeren mislukt. Controleer je gegevens; de vorige staat staat onder Back-up.'}
+    render();window.scrollTo(0,0)}
+  else if(a==='impcancel'){ui.imp=null;render()}
+  else if(a==='openpaste'){const ta=$('#pastedata');startImport('geplakte tekst',ta?ta.value:'')}
+  else if(a==='undoimp'){try{await restorePrevious();ui.msg='Vorige staat teruggezet.'}catch(err){ui.msg='Terugzetten lukte niet.'}render();window.scrollTo(0,0)}
+  else if(a==='rmlogo'){S.brand.logo='';touch();render()}
+  else if(a==='brandreset'){S.brand.color='#0b5d6b';touch();render()}
+  else if(a==='applydef'){const n=applyDefaults();ui.msg=n?n+' velden ingevuld met je standaardwaarden.':'Er was niets in te vullen.';touch();render()}
+  else if(a==='saveclient'){
+    const I=S.info;
+    if(!(I.ogn||'').trim()){ui.msg='Vul eerst de naam van de opdrachtgever in.';render();return}
+    const c={n:I.ogn.trim(),a:I.oga,cp:I.ocp,c:I.occ};
+    const i=S.clients.findIndex(x=>x.n.toLowerCase()===c.n.toLowerCase());
+    if(i>=0)S.clients[i]=c;else S.clients.push(c);
+    S.clients.sort((x,y)=>x.n.localeCompare(y.n,'nl'));
+    ui.msg='Opdrachtgever bewaard in je profiel.';touch();render()}
+  else if(a==='delclient'){
+    const i=+b.dataset.i,key='cl'+i;
+    if(ui.confirm!==key){ui.confirm=key;render();return}
+    S.clients.splice(i,1);ui.confirm='';touch();render()}
   else if(a==='doupd'){if(ui.waiting){try{await persist()}catch(x){}ui.updating=true;ui.waiting.postMessage('SKIP_WAITING')}}
   else if(a==='chkupd'){
     if(!swReg){ui.msg='Updates controleren werkt alleen in de geïnstalleerde app of via https.';render();return}
@@ -1258,9 +1457,6 @@ document.addEventListener('click',async e=>{
   else if(a==='install'){const ev=ui.installEvt;if(ev){ev.prompt();try{await ev.userChoice}catch(x){}ui.installEvt=null;render()}}
   else if(a==='savefile'){saveFile(fileName(),klantHTML(),$('#fmsg'))}
   else if(a==='copydata'){const m=$('#fmsg');try{await navigator.clipboard.writeText(dataJSON());if(m)m.textContent='Back-uptekst gekopieerd. Plak hem ergens veilig (notitie, mail aan jezelf).'}catch(err){const ta=$('#pastedata');if(m)m.textContent='Kopiëren lukte niet hier.'}}
-  else if(a==='openpaste'){const ta=$('#pastedata');try{const o=parseData(ta.value);ui.pendingOpen={name:'geplakte tekst',o};render()}catch(err){ui.msg='Dit lijkt geen meethulp-back-up. Er is niets veranderd.';render()}}
-  else if(a==='openok'){if(ui.pendingOpen){const o=ui.pendingOpen.o;ui.pendingOpen=null;applyData(o);ui.msg='Bestand geopend.';render()}}
-  else if(a==='opencancel'){ui.pendingOpen=null;render()}
   else if(a==='sigclear'){S.sig='';touch();render()}
   else if(a==='copy'){
     const txt=reportText();const m=$('#rmsg');
